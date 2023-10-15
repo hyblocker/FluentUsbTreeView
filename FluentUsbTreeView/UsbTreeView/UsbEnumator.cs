@@ -441,6 +441,7 @@ namespace FluentUsbTreeView.UsbTreeView {
             return driverKeyNameW.DriverKeyName;
         }
 
+        // specialisation for strings
         public static bool GetDeviceProperty(IntPtr DeviceInfoSet, SP_DEVINFO_DATA DeviceInfoData, DevRegProperty Property, out string ppBuffer) {
             bool bResult;
             uint requiredLength = 0;
