@@ -1,0 +1,147 @@
+﻿<ui:FluentWindow x:Name="fluentWindow"
+    x:Class="FluentUsbTreeView.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:FluentUsbTreeView"
+    xmlns:helpers="clr-namespace:FluentUsbTreeView.UIExtensions"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    mc:Ignorable="d"
+    ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+    ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    ExtendsContentIntoTitleBar="True"
+    WindowBackdropType="Mica"
+    WindowCornerPreference="Round"
+    WindowStartupLocation="CenterScreen"
+    Title="USB Tree View"
+    Height="450"
+    Width="800">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Menu bar -->
+        <DockPanel Grid.Row="1">
+            <Menu DockPanel.Dock="Top" Margin="0,0,0,0">
+                <ui:MenuItem x:Name="menuFile" Header="_File">
+                    <ui:MenuItem x:Name="refreshDevices" Header="_Refresh" Click="refreshDevices_Click" />
+                    <Separator />
+                    <ui:MenuItem x:Name="restartAsAdmin" Header="Restart 'As _Administrator'" Click="restartAsAdmin_Click">
+                        <ui:MenuItem.Icon>
+                            <ui:SymbolIcon Symbol="Shield32"/>
+                        </ui:MenuItem.Icon>
+                    </ui:MenuItem>
+                    <Separator />
+                    <ui:MenuItem x:Name="openXmlReport" Header="Open XML Report" />
+                    <ui:MenuItem x:Name="saveXmlReport" Header="Save XML Report" />
+                    <Separator />
+                    <ui:MenuItem x:Name="saveTextReport" Header="_Save Text Report" />
+                    <Separator />
+                    <ui:MenuItem x:Name="exitProgram" Header="E_xit" Click="exitProgram_Click"/>
+                </ui:MenuItem>
+                <ui:MenuItem x:Name="menuEdit" Header="_Edit">
+                    <ui:MenuItem x:Name="copyFullTreeRoot" Header="Copy full _Tree">
+                        <ui:MenuItem x:Name="copyFullTreeText" Header="As _Text" />
+                        <ui:MenuItem x:Name="copyFullTreeScreenshot" Header="As _Screenshot" />
+                    </ui:MenuItem>
+                    <ui:MenuItem x:Name="copyTreeSelectedRoot" Header="Copy T_ree from selected Item">
+                        <ui:MenuItem x:Name="copyTreeSelectedText" Header="As _Text" />
+                        <ui:MenuItem x:Name="copyTreeSelectedScreenshot" Header="As _Screenshot" />
+                    </ui:MenuItem>
+                    <Separator />
+                    <ui:MenuItem x:Name="copyReportFull" Header="_Copy full Report" />
+                    <ui:MenuItem x:Name="copyReportSelect" Header="Copy Report from selected _Item" />
+                </ui:MenuItem>
+                <ui:MenuItem x:Name="menuOptions" Header="_Options">
+                    <ui:MenuItem x:Name="autoRefresh" Header="_Auto Refresh" IsCheckable="True" />
+                    <ui:MenuItem x:Name="endpointDescriptors" Header="_Endpoint Descriptors" IsCheckable="True" />
+                    <ui:MenuItem x:Name="readMsftStringDescriptor" Header="_Read Msft String Descriptor 0xEE" IsCheckable="True" />
+                    <ui:MenuItem x:Name="scanAllStringDescriptors" Header="_Scan all String Descriptors" IsCheckable="True" />
+                    <ui:MenuItem x:Name="descriptorHexDumps" Header="_Descriptor HexDumps" IsCheckable="True" />
+                    <ui:MenuItem x:Name="driveNumsInTree" Header="Drive N_umbers in Tree" IsCheckable="True" />
+                    <ui:MenuItem x:Name="endpointsInTree" Header="_Endpoints in Tree" IsCheckable="True" />
+                    <ui:MenuItem x:Name="portsInTreeRoot" Header="_Ports in Tree">
+                        <ui:MenuItem x:Name="portsInTreeNumber" Header="Port _Number" IsCheckable="True" helpers:RadioMenuItem.GroupName="PortsInTree" />
+                        <ui:MenuItem x:Name="portsInTreeChain" Header="Port _Chain" IsCheckable="True" helpers:RadioMenuItem.GroupName="PortsInTree" />
+                    </ui:MenuItem>
+                    <ui:MenuItem x:Name="devNamesInTreeRoot" Header="_Device Names in Tree" >
+                        <ui:MenuItem x:Name="devNamesInTreeDevManager" Header="From Device _Manager" IsCheckable="True" helpers:RadioMenuItem.GroupName="DevNamesInTree" />
+                        <ui:MenuItem x:Name="devNamesInTreeStrDescriptors" Header="From String _Descriptors" IsCheckable="True" helpers:RadioMenuItem.GroupName="DevNamesInTree" />
+                        <ui:MenuItem x:Name="devNamesInTreeSmart" Header="_Smart Choice" IsCheckable="True" helpers:RadioMenuItem.GroupName="DevNamesInTree" />
+                    </ui:MenuItem>
+                    <Separator />
+                    <ui:MenuItem x:Name="expandEmptyPorts" Header="E_xpand for empty Ports" IsCheckable="True" />
+                    <ui:MenuItem x:Name="expandEmptyHubs" Header="E_xpand for empty Hubs" IsCheckable="True" />
+                    <ui:MenuItem x:Name="expandNewDevs" Header="Expand for _new Devices" IsCheckable="True" />
+                    <ui:MenuItem x:Name="jumpNewDevs" Header="_Jump to new Devices" IsCheckable="True" />
+                    <ui:MenuItem x:Name="jumpRemovedDevs" Header="Jump to _removed Devices" IsCheckable="True" />
+                    <Separator />
+                    <ui:MenuItem x:Name="font" Header="_Font..." />
+                    <ui:MenuItem x:Name="bgColour" Header="_Background Colour..." />
+                    <ui:MenuItem x:Name="highlighting" Header="_Highlighting..." />
+                    <ui:MenuItem x:Name="darkTheme" Header="_Dark Theme" IsCheckable="True" Click="updateTheme_Click" helpers:RadioMenuItem.GroupName="themeGroup" />
+                    <ui:MenuItem x:Name="highContrast" Header="High _Contrast" IsCheckable="True" Click="updateTheme_Click" helpers:RadioMenuItem.GroupName="themeGroup" />
+                    <Separator />
+                    <ui:MenuItem x:Name="forceSingleInstance" Header="Allow _only one instance" IsCheckable="True" />
+                    <Separator />
+                    <ui:MenuItem x:Name="alwaysOnTop" Header="_Always On Top" IsCheckable="True" />
+                </ui:MenuItem>
+                <ui:MenuItem x:Name="menuTools" Header="_Tools">
+                    <ui:MenuItem x:Name="deviceManager" Header="De_vice Manager" />
+                    <ui:MenuItem x:Name="diskManagement" Header="_Disk Management" />
+                    <ui:MenuItem x:Name="eventViewer" Header="_Event Viewer" />
+                    <ui:MenuItem x:Name="networkAdapter" Header="_Network Adapter" />
+                </ui:MenuItem>
+                <ui:MenuItem x:Name="menuHelp" Header="_Help">
+                    <ui:MenuItem x:Name="about" Header="_About" />
+                </ui:MenuItem>
+            </Menu>
+        </DockPanel>
+
+        <!-- content -->
+        <!-- effectively a splitview -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition MinWidth="100" />
+                <ColumnDefinition Width="5" />
+                <ColumnDefinition MinWidth="100" />
+            </Grid.ColumnDefinitions>
+
+            <Grid Grid.Column="0">
+                <TreeView x:Name="usbTreeList">
+                </TreeView>
+            </Grid>
+            <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Background="Transparent" />
+            <Grid Grid.Column="2">
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                    <ui:TextBox x:Name="rawTextContent" FontFamily="Cascadia Code" Padding="4" TextWrapping="NoWrap" IsReadOnly="True" Background="Transparent">
+                        Lorem ipsum dolor sit amet
+                    </ui:TextBox>
+                </ScrollViewer>
+            </Grid>
+        </Grid>
+
+        <StatusBar Grid.Row="3">
+            <StatusBarItem>
+                <TextBlock Name="statusUsbStatus" Text="Host Controllers: 6    Root Hubs: 6    Standard Hubs: 7    Peripheral Devices: 19" />
+            </StatusBarItem>
+        </StatusBar>
+
+        <ui:TitleBar
+            x:Name="TitleBar"
+            Grid.Row="0"
+            CloseWindowByDoubleClickOnIcon="True"
+            Title="{Binding Title, ElementName=fluentWindow}">
+            <ui:TitleBar.Icon>
+                <ui:ImageIcon Source="pack://application:,,,/Assets/wpfui-icon-256.png" />
+            </ui:TitleBar.Icon>
+        </ui:TitleBar>
+    </Grid>
+</ui:FluentWindow>
