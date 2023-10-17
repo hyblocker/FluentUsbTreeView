@@ -6,8 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Platforms>AnyCPU;x64;x86</Platforms>
-    <BaseOutputPath>$(SolutionDir)bin$(ProjectName)\$(Platform)\$(Configuration)\</BaseOutputPath>
-    <BaseIntermediateOutputPath>$(SolutionDir)obj$(ProjectName)\$(Platform)\$(Configuration)\</BaseIntermediateOutputPath>
+    <BaseOutputPath>$(SolutionDir)bin\$(ProjectName)</BaseOutputPath>
+    <BaseIntermediateOutputPath>$(SolutionDir)obj\$(ProjectName)</BaseIntermediateOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
