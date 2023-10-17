@@ -82,6 +82,44 @@ namespace FluentUsbTreeView.PInvoke {
         SPDRP_BASE_CONTAINERID        = 0x00000024  // Base ContainerID (R)
     }
 
+    public enum INTERFACE_TYPE : int {
+        InterfaceTypeUndefined,
+        Internal,
+        Isa,
+        Eisa,
+        MicroChannel,
+        TurboChannel,
+        PCIBus,
+        VMEBus,
+        NuBus,
+        PCMCIABus,
+        CBus,
+        MPIBus,
+        MPSABus,
+        ProcessorInternal,
+        InternalPowerBus,
+        PNPISABus,
+        PNPBus,
+        Vmcs,
+        ACPIBus,
+        MaximumInterfaceType
+    }
+
+    [Flags]
+    public enum CM_DEVCAP : int {
+        CM_DEVCAP_LOCKSUPPORTED     = (0x00000001),
+        CM_DEVCAP_EJECTSUPPORTED    = (0x00000002),
+        CM_DEVCAP_REMOVABLE         = (0x00000004),
+        CM_DEVCAP_DOCKDEVICE        = (0x00000008),
+        CM_DEVCAP_UNIQUEID          = (0x00000010),
+        CM_DEVCAP_SILENTINSTALL     = (0x00000020),
+        CM_DEVCAP_RAWDEVICEOK       = (0x00000040),
+        CM_DEVCAP_SURPRISEREMOVALOK = (0x00000080),
+        CM_DEVCAP_HARDWAREDISABLED  = (0x00000100),
+        CM_DEVCAP_NONDYNAMIC        = (0x00000200),
+        CM_DEVCAP_SECUREDEVICE      = (0x00000400),
+    }
+
     public static class SetupApi {
 
         [DllImport("setupapi.dll", SetLastError = true)]
@@ -164,6 +202,26 @@ namespace FluentUsbTreeView.PInvoke {
             DevRegProperty property,
             out UInt32 propertyRegDataType,
             StringBuilder propertyBuffer,
+            uint propertyBufferSize,
+            out UInt32 requiredSize
+        );
+        [DllImport("setupapi.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern bool SetupDiGetDeviceRegistryProperty(
+            IntPtr deviceInfoSet,
+            ref SP_DEVINFO_DATA deviceInfoData,
+            DevRegProperty property,
+            out UInt32 propertyRegDataType,
+            out Int32 propertyBuffer,
+            uint propertyBufferSize,
+            out UInt32 requiredSize
+        );
+        [DllImport("setupapi.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        public static extern bool SetupDiGetDeviceRegistryProperty(
+            IntPtr deviceInfoSet,
+            ref SP_DEVINFO_DATA deviceInfoData,
+            DevRegProperty property,
+            out UInt32 propertyRegDataType,
+            byte[] propertyBuffer,
             uint propertyBufferSize,
             out UInt32 requiredSize
         );

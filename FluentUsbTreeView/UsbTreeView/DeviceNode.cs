@@ -58,7 +58,7 @@ namespace FluentUsbTreeView.UsbTreeView {
                 }
 
                 // Get the DriverName value
-                bResult = UsbEnumator.GetDeviceProperty(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_DRIVER, out buf);
+                bResult = UsbEnumator.GetDevicePropertyString(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_DRIVER, out buf);
 
                 // If the DriverName value matches, return the DeviceInstance
                 if ( bResult == true && buf != null && pDriverName == buf) {
@@ -117,17 +117,31 @@ namespace FluentUsbTreeView.UsbTreeView {
             }
             DevProps.DeviceId = deviceIdStringBuilder.ToString();
 
-            status = UsbEnumator.GetDeviceProperty(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_DEVICEDESC, out DevProps.DeviceDesc);
-
+            // Get device desc
+            status = UsbEnumator.GetDevicePropertyString(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_DEVICEDESC, out DevProps.DeviceDesc);
             if ( status == false ) {
                 goto Done;
             }
             
             // We don't fail if the following registry query fails as these fields are additional information only
-            UsbEnumator.GetDeviceProperty(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_HARDWAREID, out DevProps.HwId);
-            UsbEnumator.GetDeviceProperty(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_SERVICE, out DevProps.Service);
-            UsbEnumator.GetDeviceProperty(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_CLASS, out DevProps.DeviceClass);
-            UsbEnumator.GetDeviceProperty(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_DEVICE_POWER_DATA, out DevProps.PowerState);
+            UsbEnumator.GetDevicePropertyString(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_HARDWAREID, out DevProps.HwId);
+            UsbEnumator.GetDevicePropertyString(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_SERVICE, out DevProps.Service);
+            UsbEnumator.GetDevicePropertyString(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_CLASS, out DevProps.DeviceClass);
+            UsbEnumator.GetDevicePropertyStruct(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_CLASSGUID, out DevProps.DeviceClassGuid);
+            UsbEnumator.GetDevicePropertyStruct(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_DEVICE_POWER_DATA, out DevProps.PowerState);
+            // to cast to enum since generic enums are awful
+            int legacyBusType = 0;
+            int capabilities = 0;
+            UsbEnumator.GetDevicePropertyInt32(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_LEGACYBUSTYPE, out legacyBusType);
+            UsbEnumator.GetDevicePropertyInt32(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_CAPABILITIES, out capabilities);
+            DevProps.LegacyBusType = (INTERFACE_TYPE) legacyBusType;
+            DevProps.Capabilities = (CM_DEVCAP) capabilities;
+            UsbEnumator.GetDevicePropertyString(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_ENUMERATOR_NAME, out DevProps.Enumerator);
+            UsbEnumator.GetDevicePropertyInt32(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_ADDRESS, out DevProps.Address);
+            UsbEnumator.GetDevicePropertyString(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_BASE_CONTAINERID, out DevProps.ContainerId);
+            UsbEnumator.GetDevicePropertyString(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_LOCATION_INFORMATION, out DevProps.LocationInfo);
+            UsbEnumator.GetDevicePropertyString(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_LOCATION_PATHS, out DevProps.LocationPaths);
+            // UsbEnumator.GetDeviceProperty(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_LOCATION_PATHS, out DevProps.LocationPaths);
         Done:
 
             if ( deviceInfo != Kernel32.INVALID_HANDLE_VALUE ) {
