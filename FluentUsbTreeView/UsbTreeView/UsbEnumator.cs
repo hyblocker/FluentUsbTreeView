@@ -177,25 +177,6 @@ namespace FluentUsbTreeView.UsbTreeView {
             }
 
             hcInfo.DriverKey = driverKeyName;
-
-            // Extract VEN, DEV, SUBSYS, REV from the device instance id
-            uint ven, dev, subsys, rev;
-            ven = dev = subsys = rev = 0;
-
-            Regex r = new Regex(@"^PCI\\VEN_(?<ven>[0-9a-fA-F]+)&DEV_(?<dev>[0-9a-fA-F]+)&SUBSYS_(?<subsys>[0-9a-fA-F]+)&REV_(?<rev>[0-9a-fA-F]+)", RegexOptions.None);
-
-            Match m = r.Match(DevProps.DeviceId);
-            if ( m.Success ) {
-                ven     = Convert.ToUInt32(m.Groups["ven"].Value,       16);
-                dev     = Convert.ToUInt32(m.Groups["dev"].Value,       16);
-                subsys  = Convert.ToUInt32(m.Groups["subsys"].Value,    16);
-                rev     = Convert.ToUInt32(m.Groups["rev"].Value,       16);
-            }
-
-            hcInfo.VendorID = ven;
-            hcInfo.DeviceID = dev;
-            hcInfo.SubSysID = subsys;
-            hcInfo.Revision = ( USB_DEVICE_SPEED ) rev;
             hcInfo.UsbDeviceProperties = DevProps;
 
             // Get the USB Host Controller power map
@@ -302,8 +283,9 @@ namespace FluentUsbTreeView.UsbTreeView {
             USB_HUB_CAPABILITIES_EX hubCapabilityEx = new USB_HUB_CAPABILITIES_EX();
             IntPtr                  hHubDevice = Kernel32.INVALID_HANDLE_VALUE;
             WpfTreeViewItem         hItem = null;
-            UsbHubInfo         info = new UsbHubInfo();
-            string                  deviceName = null;
+            UsbHubInfo              info = new UsbHubInfo();
+            string                  devicePath = null;
+            string                  driverKeyName = null;
             int                     nBytes = 0;
             bool                    success = false;
             string                  leafName = "";
@@ -317,13 +299,15 @@ namespace FluentUsbTreeView.UsbTreeView {
             hubInfoEx = new USB_HUB_INFORMATION_EX();
             hubCapabilityEx = new USB_HUB_CAPABILITIES_EX();
 
+            bool isRootHub = ConnectionInfo == null;
+
             // Keep copies of the Hub Name, Connection Info, and Configuration
             // Descriptor pointers
             info.HubName = HubName;
             info.PortConnectorProps = PortConnectorProps;
             info.UsbDeviceProperties = DevProps;
 
-            if ( ConnectionInfo != null ) {
+            if ( !isRootHub ) {
                 info.DeviceInfoType         = UsbDeviceInfoType.ExternalHub;
                 info.ConnectionInfo         = ConnectionInfo;
                 info.ConfigDesc             = ConfigDesc;
@@ -335,10 +319,10 @@ namespace FluentUsbTreeView.UsbTreeView {
             }
 
             // Allocate a temp buffer for the full hub device name.
-            deviceName = "\\\\.\\" + HubName;
+            devicePath = "\\\\.\\" + HubName;
 
             // Try to hub the open device
-            hHubDevice = Kernel32.CreateFile(deviceName, Kernel32.GENERIC_WRITE, Kernel32.FILE_SHARE_WRITE, 0, Kernel32.OPEN_EXISTING, 0, 0);
+            hHubDevice = Kernel32.CreateFile(devicePath, Kernel32.GENERIC_WRITE, Kernel32.FILE_SHARE_WRITE, 0, Kernel32.OPEN_EXISTING, 0, 0);
 
             if ( hHubDevice == Kernel32.INVALID_HANDLE_VALUE ) {
                 HandleNativeFailure();
@@ -365,7 +349,6 @@ namespace FluentUsbTreeView.UsbTreeView {
                 info.HubInfoEx = null;
             }
 
-
             // Obtain Hub Capabilities
             success = Kernel32.DeviceIoControl(hHubDevice, Kernel32.IOCTL_USB_GET_HUB_CAPABILITIES_EX, ref hubCapabilityEx, Marshal.SizeOf(typeof(USB_HUB_CAPABILITIES_EX)), out hubCapabilityEx, Marshal.SizeOf(typeof(USB_HUB_CAPABILITIES_EX)), out nBytes, IntPtr.Zero);
 
@@ -375,8 +358,25 @@ namespace FluentUsbTreeView.UsbTreeView {
                 info.HubCapabilityEx = null;
             }
 
+            // Since this is a root hub the index is ALWAYS 1
+            driverKeyName = GetDriverKeyName(hHubDevice, 1);
+
+            if ( driverKeyName == null ) {
+                if (!DeviceNode.DevicePathToDrvierKeyName(devicePath, out driverKeyName)) {
+                    HandleNativeFailure();
+                }
+            }
+            if ( driverKeyName != null ) {
+                int cbDriverName = 0;
+
+                if ( driverKeyName.Length < MAX_DRIVER_KEY_NAME ) {
+                    DevProps = DeviceNode.DriverNameToDeviceProperties(driverKeyName, cbDriverName);
+                }
+            }
+            info.UsbDeviceProperties = DevProps;
+
             // Build the leaf name from the port number and the device description
-            if ( ConnectionInfo.HasValue ) {
+            if ( !isRootHub ) {
                 leafName = $"[Port{ConnectionInfo.Value.ConnectionIndex}] " + ConnectionStatuses[(int)ConnectionInfo.Value.ConnectionStatus] + " :  ";
                 // StringCchPrintf(leafName, dwSizeOfLeafName, "[Port%d] ", ConnectionInfo->ConnectionIndex);
                 // StringCchCat(leafName,
@@ -389,11 +389,11 @@ namespace FluentUsbTreeView.UsbTreeView {
             }
 
             if ( DevProps != null ) {
-                leafName = leafName + DevProps.DeviceDesc;
+                leafName = leafName + DeviceNameUtil.GetFriendlyUsbHubName(info);
             } else {
-                if ( ConnectionInfo != null ) {
+                if ( isRootHub ) {
                     // External hub
-                    leafName = leafName + HubName;
+                    leafName = leafName + DeviceNameUtil.GetFriendlyUsbHubName(info);
                 } else {
                     // Root hub
                     leafName = leafName + "RootHub";
@@ -403,7 +403,7 @@ namespace FluentUsbTreeView.UsbTreeView {
             // Now add an item to the TreeView with the PUSBDEVICEINFO pointer info
             // as the LPARAM reference value containing everything we know about the
             // hub.
-            hItem = MainWindow.Instance.AddLeaf(hTreeParent, info, leafName, UsbTreeIcon.UsbHub, true);
+            hItem = MainWindow.Instance.AddLeaf(hTreeParent, info, leafName, UsbTreeIcon.UsbHub, isRootHub);
 
             if ( hItem == null ) {
                 HandleNativeFailure();
@@ -780,6 +780,7 @@ namespace FluentUsbTreeView.UsbTreeView {
                     // }
 
                     info.DeviceInfoType = UsbDeviceInfoType.DeviceInfo;
+                    info.DriverKey = driverKeyName;
                     info.ConnectionInfo = connectionInfoEx;
                     info.PortConnectorProps = pPortConnectorProps;
                     info.ConfigDesc = configDesc;
@@ -806,7 +807,8 @@ namespace FluentUsbTreeView.UsbTreeView {
                         // {
                         //     HandleNativeFailure();
                         // }
-                        leafName = leafName + " :  " + DevProps.DeviceDesc;
+                        leafName = leafName + " :  " + DeviceNameUtil.GetFriendlyUsbDeviceName(info);
+                        ;
 
                         // dwSizeOfLeafName = sizeof(leafName);
                         // StringCchCatN(leafName, 
@@ -819,16 +821,20 @@ namespace FluentUsbTreeView.UsbTreeView {
                         //     cchDeviceDesc );
                     }
 
+                    bool isDeviceConnected = false;
+
                     if (connectionInfoEx.ConnectionStatus == USB_CONNECTION_STATUS.NoDeviceConnected )
                     {
                         if (connectionInfoExV2HasValue &&
                             ( connectionInfoExV2.SupportedUsbProtocols & USB_PROTOCOLS.Usb300 ) == USB_PROTOCOLS.Usb300 )
                         {
                             icon = UsbTreeIcon.NoSsDevice;
+                            isDeviceConnected = false;
                         }
                         else
                         {
                             icon = UsbTreeIcon.NoDevice;
+                            isDeviceConnected = false;
                         }
                     }
                     else if (connectionInfoEx.CurrentConfigurationValue != 0)
@@ -836,18 +842,21 @@ namespace FluentUsbTreeView.UsbTreeView {
                         if (connectionInfoEx.Speed == USB_DEVICE_SPEED.UsbSuperSpeed )
                         {
                             icon = UsbTreeIcon.GoodSsDevice;
+                            isDeviceConnected = true;
                         }
                         else
                         {
                             icon = UsbTreeIcon.GoodDevice;
+                            isDeviceConnected = true;
                         }
                     }
                     else
                     {
                         icon = UsbTreeIcon.BadDevice;
+                        isDeviceConnected = true;
                     }
 
-                    MainWindow.Instance.AddLeaf(hTreeParent, info, leafName, icon, true);
+                    MainWindow.Instance.AddLeaf(hTreeParent, info, leafName, icon, isDeviceConnected);
                 }
             } // for
         }
@@ -885,7 +894,7 @@ namespace FluentUsbTreeView.UsbTreeView {
             EnumerateAllDevicesWithGuid(s_HubList, WinApiGuids.GUID_DEVINTERFACE_USB_HUB);
         }
 
-        private static int GetHostControllerPowerMap(IntPtr hHCDev, ref UsbHostControllerInfo hcInfo) {
+        private static unsafe int GetHostControllerPowerMap(IntPtr hHCDev, ref UsbHostControllerInfo hcInfo) {
             USBUSER_POWER_INFO_REQUEST UsbPowerInfoRequest = new USBUSER_POWER_INFO_REQUEST();
             USB_POWER_INFO             pUPI = UsbPowerInfoRequest.PowerInformation ;
             int                        dwError = 0;
@@ -909,7 +918,7 @@ namespace FluentUsbTreeView.UsbTreeView {
                 // UsbPowerInfoRequest = ( USBUSER_POWER_INFO_REQUEST ) Marshal.PtrToStructure(UsbPowerInfoRequestPtr, typeof(USBUSER_POWER_INFO_REQUEST));
                 // Marshal.FreeHGlobal(UsbPowerInfoRequestPtr);
                 // UsbPowerInfoRequestPtr = IntPtr.Zero;
-                bSuccess = Kernel32.DeviceIoControl(hHCDev, Kernel32.IOCTL_USB_USER_REQUEST, ref UsbPowerInfoRequest, sizeOfPowerRequest, out UsbPowerInfoRequest, sizeOfPowerRequest, out dwBytes, IntPtr.Zero);
+                bSuccess = Kernel32.DeviceIoControl(hHCDev, Kernel32.IOCTL_USB_USER_REQUEST, &UsbPowerInfoRequest, sizeOfPowerRequest, &UsbPowerInfoRequest, sizeOfPowerRequest, &dwBytes, IntPtr.Zero);
 
                 if ( !bSuccess ) {
                     dwError = Marshal.GetLastWin32Error();
@@ -1071,52 +1080,44 @@ namespace FluentUsbTreeView.UsbTreeView {
             return driverKeyNameW.DriverKeyName;
         }
 
-        private static string GetDriverKeyName(IntPtr HCD, uint connectionIndex) {
+        private static unsafe string GetDriverKeyName(IntPtr HCD, uint connectionIndex) {
             bool                    success = false;
             int                     nBytes = 0;
-            USB_NODE_CONNECTION_DRIVERKEY_NAME  driverKeyName = new USB_NODE_CONNECTION_DRIVERKEY_NAME();
-            USB_NODE_CONNECTION_DRIVERKEY_NAME  driverKeyNameW = new USB_NODE_CONNECTION_DRIVERKEY_NAME();
+            int                     nBytesReturned = 0;
 
-            // Get the length of the name of the driver key of the HCD
-            driverKeyName.ConnectionIndex = connectionIndex;
-            driverKeyNameW.ConnectionIndex = connectionIndex;
-            int driverKeyNameSize = Marshal.SizeOf(typeof(USB_NODE_CONNECTION_DRIVERKEY_NAME));
-            // IntPtr driverKeyNamePtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(USB_HCD_DRIVERKEY_NAME)));
-            // Marshal.StructureToPtr(driverKeyName, driverKeyNamePtr, false);
-            // success = Kernel32.DeviceIoControl(HCD, Kernel32.IOCTL_GET_HCD_DRIVERKEY_NAME, driverKeyNamePtr, ( uint ) driverKeyNameSize, driverKeyNamePtr, ( uint ) driverKeyNameSize, out nBytes, IntPtr.Zero);
-            // driverKeyName = (USB_HCD_DRIVERKEY_NAME) Marshal.PtrToStructure(driverKeyNamePtr, typeof(USB_HCD_DRIVERKEY_NAME));
-            // Marshal.FreeHGlobal(driverKeyNamePtr);
-            // driverKeyNamePtr = IntPtr.Zero;
-            success = Kernel32.DeviceIoControl(HCD, Kernel32.IOCTL_USB_GET_NODE_CONNECTION_DRIVERKEY_NAME, ref driverKeyName, driverKeyNameSize, out driverKeyName, driverKeyNameSize, out nBytes, IntPtr.Zero);
-
+            USB_NODE_CONNECTION_DRIVERKEY_NAME driverKeyName = new USB_NODE_CONNECTION_DRIVERKEY_NAME() {
+                ConnectionIndex = connectionIndex,
+            };
+            nBytes = 10;
+            // IntPtr ptrDriverKey = Marshal.AllocHGlobal(nBytes);
+            // Marshal.StructureToPtr(driverKeyName, ptrDriverKey, true);
+            // success = Kernel32.DeviceIoControl(HCD, Kernel32.IOCTL_USB_GET_NODE_CONNECTION_DRIVERKEY_NAME, ptrDriverKey, nBytes, ptrDriverKey, nBytes, out nBytesReturned, IntPtr.Zero);
+            success = Kernel32.DeviceIoControl(HCD, Kernel32.IOCTL_USB_GET_NODE_CONNECTION_DRIVERKEY_NAME, &driverKeyName, nBytes, &driverKeyName, nBytes, &nBytesReturned, IntPtr.Zero);
+            
+            // handle failure
             if ( !success ) {
                 HandleNativeFailure();
                 return null;
             }
 
-            // Allocate space to hold the driver key name
             nBytes = driverKeyName.ActualLength;
-            if ( nBytes <= 10 /* sizeof(driverKeyName) */ ) {
-                HandleNativeFailure();
-                return null;
-            }
+            driverKeyName = new USB_NODE_CONNECTION_DRIVERKEY_NAME() {
+                ConnectionIndex = connectionIndex,
+            };
+            IntPtr ptrDriverKey = Marshal.AllocHGlobal(nBytes);
+            Marshal.StructureToPtr(driverKeyName, ptrDriverKey, true);
+            success = Kernel32.DeviceIoControl(HCD, Kernel32.IOCTL_USB_GET_NODE_CONNECTION_DRIVERKEY_NAME, ptrDriverKey, nBytes, ptrDriverKey, nBytes, out nBytesReturned, IntPtr.Zero);
+            // success = Kernel32.DeviceIoControl(HCD, Kernel32.IOCTL_USB_GET_NODE_CONNECTION_DRIVERKEY_NAME, &driverKeyName, nBytes, &driverKeyName, nBytes, &nBytesReturned, IntPtr.Zero);
 
-            // Get the name of the driver key of the device attached to
-            // the specified port.
-            // IntPtr driverKeyNameWPtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(USB_HCD_DRIVERKEY_NAME)));
-            // Marshal.StructureToPtr(driverKeyNameW, driverKeyNameWPtr, false);
-            // success = Kernel32.DeviceIoControl(HCD, Kernel32.IOCTL_GET_HCD_DRIVERKEY_NAME, driverKeyNameWPtr, nBytes, driverKeyNameWPtr, nBytes, out nBytes, IntPtr.Zero);
-            // driverKeyNameW = ( USB_HCD_DRIVERKEY_NAME ) Marshal.PtrToStructure(driverKeyNameWPtr, typeof(USB_HCD_DRIVERKEY_NAME));
-            // Marshal.FreeHGlobal(driverKeyNameWPtr);
-            // driverKeyNameWPtr = IntPtr.Zero;
-            success = Kernel32.DeviceIoControl(HCD, Kernel32.IOCTL_USB_GET_NODE_CONNECTION_DRIVERKEY_NAME, ref driverKeyNameW, nBytes, out driverKeyNameW, nBytes, out nBytes, IntPtr.Zero);
-
+            // handle failure
             if ( !success ) {
                 HandleNativeFailure();
                 return null;
             }
 
-            return driverKeyNameW.DriverKeyName;
+            var driverKeyNameDecoded = ( USB_NODE_CONNECTION_DRIVERKEY_NAME_STRING ) Marshal.PtrToStructure(ptrDriverKey, typeof(USB_NODE_CONNECTION_DRIVERKEY_NAME_STRING));
+            return driverKeyNameDecoded.DriverKeyName;
+            // return Marshal.PtrToStringAuto(driverKeyName.DriverKeyNamePtr);
         }
 
         // specialisation for strings
@@ -1130,6 +1131,7 @@ namespace FluentUsbTreeView.UsbTreeView {
 
             if ( ( requiredLength == 0 ) || ( bResult != false && lastError != Kernel32.ERROR_INSUFFICIENT_BUFFER ) ) {
                 ppBuffer = "";
+                HandleNativeFailure();
                 return false;
             }
 
@@ -1139,6 +1141,7 @@ namespace FluentUsbTreeView.UsbTreeView {
 
             if ( bResult == false ) {
                 ppBuffer = "";
+                HandleNativeFailure();
                 return false;
             }
 
@@ -1157,6 +1160,7 @@ namespace FluentUsbTreeView.UsbTreeView {
 
             if ( ( requiredLength == 0 ) || ( bResult != false && lastError != Kernel32.ERROR_INSUFFICIENT_BUFFER ) ) {
                 ppBuffer = new T();
+                HandleNativeFailure();
                 return false;
             }
 
@@ -1177,6 +1181,7 @@ namespace FluentUsbTreeView.UsbTreeView {
 
             if ( bResult == false ) {
                 ppBuffer = new T();
+                HandleNativeFailure();
                 return false;
             }
 
@@ -1193,6 +1198,7 @@ namespace FluentUsbTreeView.UsbTreeView {
 
             if ( ( requiredLength == 0 ) || ( bResult != false && lastError != Kernel32.ERROR_INSUFFICIENT_BUFFER ) ) {
                 ppBuffer = -1;
+                HandleNativeFailure();
                 return false;
             }
 
@@ -1203,6 +1209,7 @@ namespace FluentUsbTreeView.UsbTreeView {
 
             if ( bResult == false ) {
                 ppBuffer = -1;
+                HandleNativeFailure();
                 return false;
             }
 
@@ -2081,7 +2088,7 @@ namespace FluentUsbTreeView.UsbTreeView {
         }
 
 
-        private static void HandleNativeFailure([CallerLineNumber] int lineNumber = 0, [CallerFilePath] string filePath = "", [CallerMemberName] string memberName = "") {
+        internal static void HandleNativeFailure([CallerLineNumber] int lineNumber = 0, [CallerFilePath] string filePath = "", [CallerMemberName] string memberName = "") {
             int error = Marshal.GetLastWin32Error();
             Logger.Fatal($"Failed to execute win32Function, got error \"{new Win32Exception(error).Message}\" ({error})", lineNumber, filePath, memberName);
             // throw new Win32Exception(error);

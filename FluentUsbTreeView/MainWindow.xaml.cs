@@ -109,13 +109,29 @@ namespace FluentUsbTreeView {
             UsbEnumator.EnumerateHostControllers(computerNode, ref m_devicesConnected);
         }
 
-        public WpfTreeViewItem AddLeaf(WpfTreeViewItem hTreeParent, object metadata, string leafName, UsbTreeIcon icon, bool shouldExpand) {
+        public WpfTreeViewItem AddLeaf(WpfTreeViewItem hTreeParent, object metadata, string leafName, UsbTreeIcon icon, bool shouldBeShown) {
             WpfTreeViewItem leafNode = new WpfTreeViewItem();
             leafNode.Header = TreeHelpers.CreateTreeViewContentWithIcon(leafName, icon);
             leafNode.Tag = metadata;
             leafNode.Selected += TreeNode_Selected;
             hTreeParent.Items.Add(leafNode);
-            leafNode.IsExpanded = shouldExpand;
+            // Expand all parent nodes too if need be
+            if ( shouldBeShown ) {
+                WpfTreeViewItem currentParentElement = hTreeParent;
+                while ( true ) {
+                    currentParentElement.IsExpanded = true;
+                    if ( currentParentElement.Parent.GetType() == typeof(WpfTreeViewItem) &&
+                         currentParentElement.Parent != usbTreeList ) {
+                        currentParentElement = (WpfTreeViewItem) currentParentElement.Parent;
+                        // if the parent is expanded it means that the other nodes from the parent up to the root node are also expanded
+                        if ( currentParentElement.IsExpanded ) {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+            }
             return leafNode;
         }
         private void TreeNode_Selected(object sender, RoutedEventArgs e) {
@@ -133,6 +149,9 @@ namespace FluentUsbTreeView {
                 } else if ( metadataType == typeof(UsbHubInfo) ) {
                     UsbHubInfo metadata = (UsbHubInfo) treeNode.Tag;
                     rawTextContent.Text = DetailViewDataGenerator.GetInfoStringForUsbHub(metadata).Replace("\t", "    "); // tabs to 4 spaces
+                } else if ( metadataType == typeof(USBDEVICEINFO) ) {
+                    USBDEVICEINFO metadata = (USBDEVICEINFO) treeNode.Tag;
+                    rawTextContent.Text = DetailViewDataGenerator.GetInfoStringForUsbDevice(metadata).Replace("\t", "    "); // tabs to 4 spaces
                 }
             }
 

@@ -86,6 +86,9 @@
   <PropertyGroup>
     <StartupObject>Editor.Program</StartupObject>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -113,6 +116,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="UIExtensions\RadioMenuItem.cs" />
     <Compile Include="UsbTreeView\DeviceNode.cs" />
+    <Compile Include="UsbTreeView\PInvoke\Cfgmgr32.cs" />
     <Compile Include="UsbTreeView\PInvoke\Kernel32.cs" />
     <Compile Include="UsbTreeView\PInvoke\NativeUtils.cs" />
     <Compile Include="UsbTreeView\PInvoke\SetupApi.cs" />
@@ -162,6 +166,7 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <None Include="app.manifest" />
     <None Include="ILRepack.targets" />
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">

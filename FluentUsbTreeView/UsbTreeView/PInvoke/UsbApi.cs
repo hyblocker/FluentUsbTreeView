@@ -171,6 +171,20 @@ namespace FluentUsbTreeView.PInvoke {
             PowerSystemMaximum
         }
 
+        [Flags]
+        public enum PDCAP_CAPABILITIES : uint {
+            PDCAP_NONE                      = 0x00000000,
+            PDCAP_D0_SUPPORTED              = 0x00000001,
+            PDCAP_D1_SUPPORTED              = 0x00000002,
+            PDCAP_D2_SUPPORTED              = 0x00000004,
+            PDCAP_D3_SUPPORTED              = 0x00000008,
+            PDCAP_WAKE_FROM_D0_SUPPORTED    = 0x00000010,
+            PDCAP_WAKE_FROM_D1_SUPPORTED    = 0x00000020,
+            PDCAP_WAKE_FROM_D2_SUPPORTED    = 0x00000040,
+            PDCAP_WAKE_FROM_D3_SUPPORTED    = 0x00000080,
+            PDCAP_WARM_EJECT_SUPPORTED      = 0x00000100,
+        }
+
         public enum USB_DESCRIPTOR_TYPE : byte {
             // USB 1.1: 9.4 Standard Device Requests, Table 9-5. Descriptor Types
             USB_DEVICE_DESCRIPTOR_TYPE                                  = 0x01,
@@ -314,7 +328,6 @@ namespace FluentUsbTreeView.PInvoke {
 
         // USB 1.1: 11.15.2.1 Hub Descriptor, Table 11-8. Hub Descriptor
         // USB 2.0: 11.23.2.1 Hub Descriptor, Table 11-13. Hub Descriptor
-        // [StructLayout(LayoutKind.Explicit, CharSet = CharSet.Auto, Size = 72)]
         [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 71)]
         public unsafe struct USB_HUB_DESCRIPTOR {
             public byte bDescriptorLength;
@@ -505,22 +518,22 @@ namespace FluentUsbTreeView.PInvoke {
         [StructLayout(LayoutKind.Explicit, Size = 56)]
         public struct CM_POWER_DATA {
             [FieldOffset(0)]
-            public uint              PD_Size;
+            public uint                 PD_Size;
             [FieldOffset(4)]
-            public DEVICE_POWER_STATE PD_MostRecentPowerState;
+            public DEVICE_POWER_STATE   PD_MostRecentPowerState;
             [FieldOffset(8)]
-            public uint              PD_Capabilities;
+            public PDCAP_CAPABILITIES   PD_Capabilities;
             [FieldOffset(12)]
-            public uint              PD_D1Latency;
+            public uint                 PD_D1Latency;
             [FieldOffset(16)]
-            public uint              PD_D2Latency;
+            public uint                 PD_D2Latency;
             [FieldOffset(20)]
-            public uint              PD_D3Latency;
+            public uint                 PD_D3Latency;
             [FieldOffset(24)]
             [MarshalAs(UnmanagedType.ByValArray,SizeConst = 7)] /* POWER_SYSTEM_MAXIMUM */
             public DEVICE_POWER_STATE[] PD_PowerStateMapping;
             [FieldOffset(52)]
-            public SYSTEM_POWER_STATE PD_DeepestSystemWake;
+            public SYSTEM_POWER_STATE   PD_DeepestSystemWake;
         }
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]

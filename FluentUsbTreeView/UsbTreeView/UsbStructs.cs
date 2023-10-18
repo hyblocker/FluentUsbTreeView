@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using static FluentUsbTreeView.PInvoke.Cfgmgr32;
 using static FluentUsbTreeView.PInvoke.UsbApi;
 
 namespace FluentUsbTreeView {
@@ -22,6 +23,7 @@ namespace FluentUsbTreeView {
 
     public class USBDEVICEINFO {
         public UsbDeviceInfoType                       DeviceInfoType;
+        public string                                  DriverKey;
         public USB_NODE_INFORMATION                    HubInfo;          // NULL if not a HUB
         public USB_HUB_INFORMATION_EX                  HubInfoEx;        // NULL if not a HUB
         public string                                  HubName;          // NULL if not a HUB
@@ -51,7 +53,13 @@ namespace FluentUsbTreeView {
     /// Device Manager DevRegProperty properties
     /// </summary>
     public class UsbDevicePnpStrings {
+        public string FriendlyName;
+        public string Manufacturer;
         public string DeviceId;
+        public uint VendorID;
+        public uint ProductID; // Also DeviceID for PCIe devices
+        public uint SubSysID;
+        public UsbApi.USB_DEVICE_SPEED Revision;
         public string DeviceDesc;
         public string HwId;
         public string Service;
@@ -61,6 +69,8 @@ namespace FluentUsbTreeView {
         public string ContainerId;
         public string LocationInfo;
         public string LocationPaths;
+        public DN_Status Status;
+        public CM_PROB ProblemCode;
         public Guid DeviceClassGuid;
         public INTERFACE_TYPE LegacyBusType;
         public CM_POWER_DATA PowerState;
@@ -88,10 +98,6 @@ namespace FluentUsbTreeView {
         public UsbDeviceInfoType                           DeviceInfoType;
         public LinkedListNode<UsbHostControllerInfo>    ListEntry;
         public string                                   DriverKey;
-        public uint                                     VendorID;
-        public uint                                     DeviceID;
-        public uint                                     SubSysID;
-        public UsbApi.USB_DEVICE_SPEED                  Revision;
         public UsbApi.USB_POWER_INFO[]                  USBPowerInfo;
         public bool                                     BusDeviceFunctionValid;
         public uint                                     BusNumber;
@@ -105,10 +111,6 @@ namespace FluentUsbTreeView {
             this.DeviceInfoType = UsbDeviceInfoType.HostController;
             this.ListEntry = null;
             this.DriverKey = null;
-            this.VendorID = 0;
-            this.DeviceID = 0;
-            this.SubSysID = 0;
-            this.Revision = UsbApi.USB_DEVICE_SPEED.UsbLowSpeed;
             this.USBPowerInfo = new UsbApi.USB_POWER_INFO[6];
             for ( int i = 0; i < 6; i++ ) {
                 this.USBPowerInfo[i] = new UsbApi.USB_POWER_INFO();
@@ -124,7 +126,7 @@ namespace FluentUsbTreeView {
 
 
     public class UsbHubInfo {
-        public UsbDeviceInfoType                           DeviceInfoType;
+        public UsbDeviceInfoType                        DeviceInfoType;
         public USB_NODE_INFORMATION?                    HubInfo;          // NULL if not a HUB
         public USB_HUB_INFORMATION_EX?                  HubInfoEx;        // NULL if not a HUB
         public string                                   HubName;          // NULL if not a HUB

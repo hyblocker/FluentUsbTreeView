@@ -23,8 +23,17 @@ namespace FluentUsbTreeView.PInvoke {
     public struct USB_NODE_CONNECTION_DRIVERKEY_NAME {
         public uint ConnectionIndex;
         public int ActualLength;
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
+        // [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 2048)]
+        // public string DriverKeyName;
+        public IntPtr DriverKeyNamePtr;
+    }
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    public struct USB_NODE_CONNECTION_DRIVERKEY_NAME_STRING {
+        public uint ConnectionIndex;
+        public int ActualLength;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 2048)]
         public string DriverKeyName;
+        // public IntPtr DriverKeyNamePtr;
     }
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
     public struct USB_HUB_NAME {

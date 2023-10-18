@@ -13,6 +13,8 @@ namespace FluentUsbTreeView.Ui {
             StackPanel stkPanelElement = new StackPanel();
             stkPanelElement.Orientation = Orientation.Horizontal;
 
+            // @TODO: Figure out how to make this DPI aware
+
             // Create Image
             WpfUiImage imageElement = new WpfUiImage();
             string iconUrl;
