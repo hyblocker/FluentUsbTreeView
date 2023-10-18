@@ -83,12 +83,12 @@ namespace FluentUsbTreeView.UsbTreeView {
 
             return status;
         }
-        public static USB_DEVICE_PNP_STRINGS DriverNameToDeviceProperties(string DriverName, int cbDriverName) {
+        public static UsbDevicePnpStrings DriverNameToDeviceProperties(string DriverName, int cbDriverName) {
             IntPtr          deviceInfo = Kernel32.INVALID_HANDLE_VALUE;
             SP_DEVINFO_DATA deviceInfoData;
             int            len;
             bool            status;
-            USB_DEVICE_PNP_STRINGS DevProps = new USB_DEVICE_PNP_STRINGS();
+            UsbDevicePnpStrings DevProps = new UsbDevicePnpStrings();
             int             lastError;
 
             // Get device instance

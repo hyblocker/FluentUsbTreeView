@@ -18,6 +18,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Wpf.Ui.Controls;
+using static FluentUsbTreeView.PInvoke.UsbApi;
 using WpfTreeViewItem = System.Windows.Controls.TreeViewItem;
 
 namespace FluentUsbTreeView {
@@ -45,6 +46,10 @@ namespace FluentUsbTreeView {
             Wpf.Ui.Appearance.SystemThemeWatcher.Watch(this);
             InitializeComponent();
             restartAsAdmin.IsEnabled = !Util.IsCurrentProcessElevated();
+
+            // Marshal tests
+            int size = System.Runtime.InteropServices.Marshal.SizeOf(typeof(USB_HUB_INFORMATION_EX));
+
 
             UsbDatabase.GetUsbProductName(0x28DE, 0x2300);
 
@@ -122,11 +127,11 @@ namespace FluentUsbTreeView {
             } else {
                 Type metadataType = treeNode.Tag?.GetType();
 
-                if ( metadataType == typeof(USBHOSTCONTROLLERINFO) ) {
-                    USBHOSTCONTROLLERINFO metadata = (USBHOSTCONTROLLERINFO) treeNode.Tag;
+                if ( metadataType == typeof(UsbHostControllerInfo) ) {
+                    UsbHostControllerInfo metadata = (UsbHostControllerInfo) treeNode.Tag;
                     rawTextContent.Text = DetailViewDataGenerator.GetInfoStringForHostController(metadata).Replace("\t", "    "); // tabs to 4 spaces
-                } else if ( metadataType == typeof(UsbHubInfoUnion) ) {
-                    UsbHubInfoUnion metadata = (UsbHubInfoUnion) treeNode.Tag;
+                } else if ( metadataType == typeof(UsbHubInfo) ) {
+                    UsbHubInfo metadata = (UsbHubInfo) treeNode.Tag;
                     rawTextContent.Text = DetailViewDataGenerator.GetInfoStringForUsbHub(metadata).Replace("\t", "    "); // tabs to 4 spaces
                 }
             }

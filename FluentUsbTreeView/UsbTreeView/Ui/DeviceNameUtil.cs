@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace FluentUsbTreeView.Ui {
     public static class DeviceNameUtil {
-        public static string GetFriendlyUsbHostControllerName(USBHOSTCONTROLLERINFO usbHostControllerInfo) {
+        public static string GetFriendlyUsbHostControllerName(UsbHostControllerInfo usbHostControllerInfo) {
             // @TODO: Prettier selector
             return usbHostControllerInfo.UsbDeviceProperties.DeviceDesc;
         }

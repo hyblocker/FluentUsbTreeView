@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Runtime.ConstrainedExecution;
 using System.Runtime.InteropServices;
 using System.Security;
@@ -17,6 +18,13 @@ namespace FluentUsbTreeView.PInvoke {
         public int ActualLength;
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
         public string RootHubName;
+    }
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    public struct USB_NODE_CONNECTION_DRIVERKEY_NAME {
+        public uint ConnectionIndex;
+        public int ActualLength;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
+        public string DriverKeyName;
     }
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
     public struct USB_HUB_NAME {
@@ -56,32 +64,50 @@ namespace FluentUsbTreeView.PInvoke {
         [DllImport("msvcrt.dll", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl)]
         public static extern int sscanf(string buffer, string format, out uint arg0, out uint arg1, out uint arg3, out uint arg4);
 
-        public const int IOCTL_GET_HCD_DRIVERKEY_NAME       = 0x220424;
-        public const int IOCTL_USB_USER_REQUEST             = 0x220438;
-        public const int IOCTL_USB_GET_ROOT_HUB_NAME        = 0x220408;
-        public const int IOCTL_USB_GET_NODE_INFORMATION     = 0x220408;
-        public const int IOCTL_USB_GET_HUB_CAPABILITIES_EX  = 0x220450;
-        public const int IOCTL_USB_GET_HUB_INFORMATION_EX   = 0x220454;
+        public const int IOCTL_USB_GET_NODE_CONNECTION_DRIVERKEY_NAME       = 0x220420;
+        public const int IOCTL_GET_HCD_DRIVERKEY_NAME                       = 0x220424;
+        public const int IOCTL_USB_GET_ROOT_HUB_NAME                        = 0x220408;
+        public const int IOCTL_USB_GET_NODE_INFORMATION                     = 0x220408;
+        public const int IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION      = 0x220410;
+        public const int IOCTL_USB_GET_NODE_CONNECTION_NAME                 = 0x220414;
+        public const int IOCTL_USB_USER_REQUEST                             = 0x220438;
+        public const int IOCTL_USB_GET_HUB_CAPABILITIES_EX                  = 0x220450;
+        public const int IOCTL_USB_GET_HUB_INFORMATION_EX                   = 0x220454;
+        public const int IOCTL_USB_GET_PORT_CONNECTOR_PROPERTIES            = 0x220458;
+        public const int IOCTL_USB_GET_NODE_CONNECTION_INFORMATION          = 0x22040C;
+        public const int IOCTL_USB_GET_NODE_CONNECTION_INFORMATION_EX       = 0x220448;
+        public const int IOCTL_USB_GET_NODE_CONNECTION_INFORMATION_EX_V2    = 0x22045C;
 
         [DllImport("kernel32.dll", ExactSpelling = true, SetLastError = true, CharSet = CharSet.Auto)]
         public static extern bool DeviceIoControl(
             IntPtr hDevice,
-            uint dwIoControlCode,
+            int dwIoControlCode,
             IntPtr lpInBuffer,
-            uint nInBufferSize,
+            int nInBufferSize,
             IntPtr lpOutBuffer,
-            uint nOutBufferSize,
-            out uint lpBytesReturned,
+            int nOutBufferSize,
+            out int lpBytesReturned,
+            IntPtr lpOverlapped);
+
+        [DllImport("kernel32.dll", ExactSpelling = true, SetLastError = true)]
+        public static unsafe extern bool DeviceIoControl(
+            IntPtr hDevice,
+            int dwIoControlCode,
+            void* lpInBuffer,
+            int nInBufferSize,
+            void* lpOutBuffer,
+            int nOutBufferSize,
+            int* lpBytesReturned,
             IntPtr lpOverlapped);
 
         public static bool DeviceIoControl<T>(
             IntPtr hDevice,
-            uint dwIoControlCode,
+            int dwIoControlCode,
             ref T lpInBuffer,
-            uint nInBufferSize,
+            int nInBufferSize,
             out T lpOutBuffer,
-            uint nOutBufferSize,
-            out uint lpBytesReturned,
+            int nOutBufferSize,
+            out int lpBytesReturned,
             IntPtr lpOverlapped) where T : struct {
 
             lpOutBuffer = new T();

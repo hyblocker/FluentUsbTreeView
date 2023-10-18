@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace FluentUsbTreeView.PInvoke {
     public static class UsbApi {
@@ -89,6 +91,22 @@ namespace FluentUsbTreeView.PInvoke {
             DeviceD3
         }
 
+        public enum USB_CONNECTION_STATUS {
+            NoDeviceConnected,
+            DeviceConnected,
+
+            /* failure codes, these map to fail reasons */
+            DeviceFailedEnumeration,
+            DeviceGeneralFailure,
+            DeviceCausedOvercurrent,
+            DeviceNotEnoughPower,
+            DeviceNotEnoughBandwidth,
+            DeviceHubNestedTooDeeply,
+            DeviceInLegacyHub,
+            DeviceEnumerating,
+            DeviceReset
+        }
+
         public enum USB_CONTROLLER_FLAVOR {
             USB_HcGeneric,
             OHCI_Generic,
@@ -153,6 +171,28 @@ namespace FluentUsbTreeView.PInvoke {
             PowerSystemMaximum
         }
 
+        public enum USB_DESCRIPTOR_TYPE : byte {
+            // USB 1.1: 9.4 Standard Device Requests, Table 9-5. Descriptor Types
+            USB_DEVICE_DESCRIPTOR_TYPE                                  = 0x01,
+            USB_CONFIGURATION_DESCRIPTOR_TYPE                           = 0x02,
+            USB_STRING_DESCRIPTOR_TYPE                                  = 0x03,
+            USB_INTERFACE_DESCRIPTOR_TYPE                               = 0x04,
+            USB_ENDPOINT_DESCRIPTOR_TYPE                                = 0x05,
+            // USB 2.0: 9.4 Standard Device Requests, Table 9-5. Descriptor Types
+            USB_DEVICE_QUALIFIER_DESCRIPTOR_TYPE                        = 0x06,
+            USB_OTHER_SPEED_CONFIGURATION_DESCRIPTOR_TYPE               = 0x07,
+            USB_INTERFACE_POWER_DESCRIPTOR_TYPE                         = 0x08,
+            // USB 3.0: 9.4 Standard Device Requests, Table 9-5. Descriptor Types
+            USB_OTG_DESCRIPTOR_TYPE                                     = 0x09,
+            USB_DEBUG_DESCRIPTOR_TYPE                                   = 0x0A,
+            USB_INTERFACE_ASSOCIATION_DESCRIPTOR_TYPE                   = 0x0B,
+            USB_BOS_DESCRIPTOR_TYPE                                     = 0x0F,
+            USB_DEVICE_CAPABILITY_DESCRIPTOR_TYPE                       = 0x10,
+            USB_SUPERSPEED_ENDPOINT_COMPANION_DESCRIPTOR_TYPE           = 0x30,
+            // USB 3.1: 9.4 Standard Device Requests, Table 9-6. Descriptor Types
+            USB_SUPERSPEEDPLUS_ISOCH_ENDPOINT_COMPANION_DESCRIPTOR_TYPE = 0x31
+        }
+
         public enum USB_HUB_NODE : uint {
             UsbHub,
             UsbMIParent
@@ -171,6 +211,7 @@ namespace FluentUsbTreeView.PInvoke {
 
         [Flags]
         public enum USB_PROTOCOLS : uint {
+            UsbNone = 0b0000,
             Usb110  = 0b0001,
             Usb200  = 0b0010,
             Usb300  = 0b0100,
@@ -178,6 +219,7 @@ namespace FluentUsbTreeView.PInvoke {
 
         [Flags]
         public enum USB_HUB_CAP_FLAGS : uint {
+            HubIsNone               = 0b00000000,
             HubIsHighSpeedCapable   = 0b00000001,
             HubIsHighSpeed          = 0b00000010,
             HubIsMultiTtCapable     = 0b00000100,
@@ -189,6 +231,7 @@ namespace FluentUsbTreeView.PInvoke {
 
         [Flags]
         public enum USB_NODE_CONNECTION_INFORMATION_EX_V2_FLAGS : uint {
+            DeviceInfoNone                              = 0b0000,
             DeviceIsOperatingAtSuperSpeedOrHigher       = 0b0001,
             DeviceIsSuperSpeedCapableOrHigher           = 0b0010,
             DeviceIsOperatingAtSuperSpeedPlusOrHigher   = 0b0100,
@@ -196,21 +239,39 @@ namespace FluentUsbTreeView.PInvoke {
         }
         [Flags]
         public enum USB_PORT_PROPERTIES : uint {
+            PortNone                    = 0b0000,
             PortIsUserConnectable       = 0b0001,
             PortIsDebugCapable          = 0b0010,
             PortHasMultipleCompanions   = 0b0100,
             PortConnectorIsTypeC        = 0b1000,
         }
 
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode, Pack = 1)]
         public struct USB_PORT_CONNECTOR_PROPERTIES {
             public uint ConnectionIndex;
-            public uint ActualLength;
+            public int ActualLength;
             public USB_PORT_PROPERTIES Properties;
             public ushort CompanionIndex;
             public ushort CompanionPortNumber;
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 255)]
-            public string CompanionHubSymbolicLinkName;
+            // MICROSOFT WHY DID YOU USE THIS HOW THE FUCK AM I SUPPOSED TO MARSHAL THIS
+            // WCHAR CompanionHubSymbolicLinkName[1];
+            internal IntPtr __ptr__CompanionHubSymbolicLinkName;
+            // public string CompanionHubSymbolicLinkName { get { return Marshal.PtrToStringAnsi(__ptr__CompanionHubSymbolicLinkName); } }
+        }
+
+        public const int SIZE_USB_PORT_CONNECTOR_PROPERTIES = 18;
+
+        // USB 1.1: 9.6.4 Endpoint, Table 9-10. Standard Endpoint Descriptor
+        // USB 2.0: 9.6.6 Endpoint, Table 9-13. Standard Endpoint Descriptor
+        // USB 3.0: 9.6.6 Endpoint, Table 9-18. Standard Endpoint Descriptor
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto, Pack = 1)]
+        public struct USB_ENDPOINT_DESCRIPTOR {
+            byte    bLength;
+            byte    bDescriptorType;
+            byte    bEndpointAddress;
+            byte    bmAttributes;
+            ushort  wMaxPacketSize;
+            byte    bInterval;
         }
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
@@ -253,29 +314,20 @@ namespace FluentUsbTreeView.PInvoke {
 
         // USB 1.1: 11.15.2.1 Hub Descriptor, Table 11-8. Hub Descriptor
         // USB 2.0: 11.23.2.1 Hub Descriptor, Table 11-13. Hub Descriptor
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto, Size = 71)]
-        public struct USB_HUB_DESCRIPTOR {
+        // [StructLayout(LayoutKind.Explicit, CharSet = CharSet.Auto, Size = 72)]
+        [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 71)]
+        public unsafe struct USB_HUB_DESCRIPTOR {
             public byte bDescriptorLength;
             public byte bDescriptorType;
             public byte bNumberOfPorts;
             public ushort wHubCharacteristics;
             public byte bPowerOnToPowerGood;
             public byte bHubControlCurrent;
-            // if you dont inline the array the runtime will throw a fit
-            // [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64)]
-            // public byte[] bRemoveAndPowerMask;
-            public ulong bRemoveAndPowerMask1;
-            public ulong bRemoveAndPowerMask2;
-            public ulong bRemoveAndPowerMask3;
-            public ulong bRemoveAndPowerMask4;
-            public ulong bRemoveAndPowerMask5;
-            public ulong bRemoveAndPowerMask6;
-            public ulong bRemoveAndPowerMask7;
-            public ulong bRemoveAndPowerMask8;
+            public fixed byte bRemoveAndPowerMask[64];
         }
 
         // USB 3.0: 10.13.2.1 Hub Descriptor, Table 10-3. SuperSpeed Hub Descriptor
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
         public struct USB_30_HUB_DESCRIPTOR {
             public byte     bLength;
             public byte     bDescriptorType;
@@ -288,21 +340,26 @@ namespace FluentUsbTreeView.PInvoke {
             public ushort   DeviceRemovable;
         }
 
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        [StructLayout(LayoutKind.Explicit, Pack = 1)]
         public struct USB_HUB_INFORMATION_EX {
-            public USB_HUB_TYPE HubType; // int size is 4 bytes
+            [FieldOffset(0)]
+            public USB_HUB_TYPE HubType;
+            [FieldOffset(4)]
             public ushort HighestPortNumber;
-            public _UsbHubInformationExUnion u;
-        }
-
-        [StructLayout(LayoutKind.Explicit, Size = 80)]
-        public struct _UsbHubInformationExUnion {
-            [FieldOffset(0)]
-            public USB_30_HUB_DESCRIPTOR Usb30HubDescriptor;
-            [FieldOffset(0)]
+            // this is a union in the C api
+            [FieldOffset(6)]
             public USB_HUB_DESCRIPTOR UsbHubDescriptor;
+            [FieldOffset(6)]
+            public USB_30_HUB_DESCRIPTOR Usb30HubDescriptor;
         }
 
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        public struct USB_NODE_CONNECTION_NAME {
+            public uint ConnectionIndex;
+            public int ActualLength;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 2048)]
+            public string NodeName;
+        }
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
         public struct USB_HUB_CAPABILITIES_EX {
@@ -314,20 +371,48 @@ namespace FluentUsbTreeView.PInvoke {
             public uint NumberOfInterfaces;
         };
 
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-        public struct USB_NODE_CONNECTION_INFORMATION_EX {
-            public int ConnectionIndex;
-            public USB_DEVICE_DESCRIPTOR DeviceDescriptor;
-            public byte CurrentConfigurationValue;
-            public byte Speed;
-            public byte DeviceIsHub;
-            public short DeviceAddress;
-            public int NumberOfOpenPipes;
-            public int ConnectionStatus;
-            //public IntPtr PipeList;
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto, Pack = 1)]
+        public struct USB_PIPE_INFO {
+            public USB_ENDPOINT_DESCRIPTOR EndpointDescriptor;
+            public uint ScheduleOffset;
         }
 
-        [StructLayout(LayoutKind.Sequential)]
+        // @TODO: PipeList
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        public unsafe struct USB_NODE_CONNECTION_INFORMATION_EX {
+            public uint ConnectionIndex;
+            public USB_DEVICE_DESCRIPTOR DeviceDescriptor;
+            public byte CurrentConfigurationValue;
+            public USB_DEVICE_SPEED Speed;
+            public byte DeviceIsHub;
+            public ushort DeviceAddress;
+            public uint NumberOfOpenPipes;
+            public USB_CONNECTION_STATUS ConnectionStatus;
+            public USB_PIPE_INFO* PipeList;
+            // [MarshalAs(UnmanagedType.ByValArray, SizeConst = 30 )]
+            // public USB_PIPE_INFO[] PipeList;
+        }
+        public const int SIZE_USB_NODE_CONNECTION_INFORMATION_EX = 35;
+
+        // @TODO: PipeList
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto, Size = 35, Pack = 1)]
+        public unsafe struct USB_NODE_CONNECTION_INFORMATION {
+            public uint ConnectionIndex;  /* INPUT */
+            /* usb device descriptor returned by this device
+               during enumeration */
+            public USB_DEVICE_DESCRIPTOR DeviceDescriptor; /* OUTPUT */
+            public byte CurrentConfigurationValue;/* OUTPUT */
+            public byte LowSpeed;/* OUTPUT */
+            public byte DeviceIsHub;/* OUTPUT */
+            public ushort DeviceAddress;/* OUTPUT */
+            public uint NumberOfOpenPipes;/* OUTPUT */
+            public USB_CONNECTION_STATUS ConnectionStatus;/* OUTPUT */
+            // [MarshalAs(UnmanagedType.ByValArray, SizeConst = 30 )]
+            public IntPtr PipeList;/* OUTPUT */
+        }
+        public const int SIZE_USB_NODE_CONNECTION_INFORMATION = 35;
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
         public struct USB_NODE_CONNECTION_INFORMATION_EX_V2 {
             // one based port number
             public uint  ConnectionIndex;
@@ -347,22 +432,53 @@ namespace FluentUsbTreeView.PInvoke {
         public struct USB_SETUP_PACKET {
             public byte bmRequest;
             public byte bRequest;
-            public short wValue;
-            public short wIndex;
-            public short wLength;
+            public ushort wValue;
+            public ushort wIndex;
+            public ushort wLength;
         }
         [StructLayout(LayoutKind.Sequential)]
         public struct USB_DESCRIPTOR_REQUEST {
-            public int ConnectionIndex;
+            public uint ConnectionIndex;
             public USB_SETUP_PACKET SetupPacket;
-            //public byte[] Data;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256, ArraySubType = UnmanagedType.I1 )]
+            public byte[] Data;
         }
 
-        //
+        public const int SIZE_USB_DESCRIPTOR_REQUEST = 12;
+
+        // USB 1.1: 9.6.2 Configuration, Table 9-8. Standard Configuration Descriptor
+        // USB 2.0: 9.6.3 Configuration, Table 9-10. Standard Configuration Descriptor
+        // USB 3.0: 9.6.3 Configuration, Table 9-15. Standard Configuration Descriptor
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct USB_CONFIGURATION_DESCRIPTOR {
+            public byte     bLength;
+            public byte     bDescriptorType;
+            public ushort   wTotalLength;
+            public byte     bNumInterfaces;
+            public byte     bConfigurationValue;
+            public byte     iConfiguration;
+            public byte     bmAttributes;
+            public byte     MaxPower;
+        }
+
+        // USB 3.0: 9.6.2 Binary Device Object Store (BOS), Table 9-9. BOS Descriptor
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct USB_BOS_DESCRIPTOR {
+            public byte bLength;
+            public byte bDescriptorType;
+            public ushort wTotalLength;
+            public byte bNumDeviceCaps;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 2)]
+        public struct USB_COMMON_DESCRIPTOR {
+            public byte bLength;
+            public USB_DESCRIPTOR_TYPE bDescriptorType;
+        }
+
         // USB 1.1: 9.6.5 String, Table 9-12. UNICODE String Descriptor
         // USB 2.0: 9.6.7 String, Table 9-16. UNICODE String Descriptor
         // USB 3.0: 9.6.8 String, Table 9-22. UNICODE String Descriptor
-        //
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
         public struct USB_STRING_DESCRIPTOR {
@@ -382,8 +498,8 @@ namespace FluentUsbTreeView.PInvoke {
             public WDMUSB_POWER_STATE RhDeviceWake;
             public WDMUSB_POWER_STATE RhSystemWake;
             public WDMUSB_POWER_STATE LastSystemSleepState;
-            public bool               CanWakeup;
-            public bool               IsPowered;
+            public byte               CanWakeup;
+            public byte               IsPowered;
         }
 
         [StructLayout(LayoutKind.Explicit, Size = 56)]
@@ -421,8 +537,8 @@ namespace FluentUsbTreeView.PInvoke {
         public struct USBUSER_REQUEST_HEADER {
             public uint UsbUserRequest;
             public USB_USER_ERROR_CODE UsbUserStatusCode;
-            public uint RequestBufferLength;
-            public uint ActualBufferLength;
+            public int RequestBufferLength;
+            public int ActualBufferLength;
         };
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]

@@ -10,7 +10,7 @@
         NoSsDevice,
     }
 
-    public enum DeviceInfoType {
+    public enum UsbDeviceInfoType {
         HostController,
         RootHub,
         ExternalHub,
