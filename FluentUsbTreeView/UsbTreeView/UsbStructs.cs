@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Markup;
 using static FluentUsbTreeView.PInvoke.Cfgmgr32;
 using static FluentUsbTreeView.PInvoke.UsbApi;
 
@@ -24,14 +25,15 @@ namespace FluentUsbTreeView {
     public class USBDEVICEINFO {
         public UsbDeviceInfoType                       DeviceInfoType;
         public string                                  DriverKey;
+        public string                                  DevicePath;
         public USB_NODE_INFORMATION                    HubInfo;          // NULL if not a HUB
         public USB_HUB_INFORMATION_EX                  HubInfoEx;        // NULL if not a HUB
         public string                                  HubName;          // NULL if not a HUB
         public USB_NODE_CONNECTION_INFORMATION_EX      ConnectionInfo;   // NULL if root HUB
         public USB_PORT_CONNECTOR_PROPERTIES           PortConnectorProps;
-        public USB_DESCRIPTOR_REQUEST?                 ConfigDesc;       // NULL if root HUB
-        public USB_DESCRIPTOR_REQUEST?                 BosDesc;          // NULL if root HUB
-        public StringDescriptorNode                    StringDescs;
+        public USB_CONFIGURATION_DESCRIPTOR?           ConfigDesc;       // NULL if root HUB
+        public USB_BOS_DESCRIPTOR?                     BosDesc;          // NULL if root HUB
+        public StringDescriptorsCollection             StringDescs;
         public USB_NODE_CONNECTION_INFORMATION_EX_V2?  ConnectionInfoV2; // NULL if root HUB
         public UsbDevicePnpStrings                     UsbDeviceProperties;
         public DeviceInfoNode                          DeviceInfoNode;
@@ -77,26 +79,32 @@ namespace FluentUsbTreeView {
         public CM_DEVCAP Capabilities;
     }
 
+    public class StringDescriptorsCollection {
+        public byte Lang_bLength;
+        public USB_DESCRIPTOR_TYPE Lang_bDescriptorType;
+        public short[] LanguageIds;
+        public List<StringDescriptorNode> Strings;
+    }
     public class StringDescriptorNode {
-        public LinkedListNode<StringDescriptorNode> Node;
-        public byte                            DescriptorIndex;
-        public ushort                          LanguageID;
-        public List<USB_STRING_DESCRIPTOR>     StringDescriptor;
+        public byte                     DescriptorIndex;
+        public short                   LanguageID;
+        public USB_STRING_DESCRIPTOR    StringDescriptor;
 
-        public StringDescriptorNode(LinkedListNode<StringDescriptorNode> list = null) {
-            this.Node = list;
-            this.StringDescriptor = new List<USB_STRING_DESCRIPTOR>();
+        public string GetStringData() {
+            string unicodeString = Encoding.Unicode.GetString(StringDescriptor.bString);
+            unicodeString = unicodeString.Remove(unicodeString.IndexOf('\0'));
+            return unicodeString;
         }
 
-        public void AppendLast(StringDescriptorNode nextNode) {
-            nextNode.Node = this.Node;
-            Node.List.AddLast(nextNode);
+        public override string ToString() {
+            return $"[{DescriptorIndex}] ({StringDescriptor.bDescriptorType}) (0x{LanguageID.ToString("X4")}) \"{GetStringData()}\" [{StringDescriptor.bLength}]";
         }
     }
 
     public class UsbHostControllerInfo {
-        public UsbDeviceInfoType                           DeviceInfoType;
+        public UsbDeviceInfoType                        DeviceInfoType;
         public LinkedListNode<UsbHostControllerInfo>    ListEntry;
+        public string                                   DevicePath;
         public string                                   DriverKey;
         public UsbApi.USB_POWER_INFO[]                  USBPowerInfo;
         public bool                                     BusDeviceFunctionValid;
@@ -105,7 +113,7 @@ namespace FluentUsbTreeView {
         public ushort                                   BusFunction;
         public UsbApi.USB_CONTROLLER_INFO_0             ControllerInfo;
         public UsbApi.USB_BANDWIDTH_INFO                BandwidthInfo;
-        public UsbDevicePnpStrings                   UsbDeviceProperties;
+        public UsbDevicePnpStrings                      UsbDeviceProperties;
 
         public UsbHostControllerInfo() {
             this.DeviceInfoType = UsbDeviceInfoType.HostController;
@@ -130,11 +138,12 @@ namespace FluentUsbTreeView {
         public USB_NODE_INFORMATION?                    HubInfo;          // NULL if not a HUB
         public USB_HUB_INFORMATION_EX?                  HubInfoEx;        // NULL if not a HUB
         public string                                   HubName;          // NULL if not a HUB
+        public string                                   DevicePath;
         public USB_NODE_CONNECTION_INFORMATION_EX?      ConnectionInfo;   // NULL if root HUB
         public USB_PORT_CONNECTOR_PROPERTIES?           PortConnectorProps;
-        public USB_DESCRIPTOR_REQUEST?                  ConfigDesc;       // NULL if root HUB
-        public USB_DESCRIPTOR_REQUEST?                  BosDesc;          // NULL if root HUB
-        public StringDescriptorNode                     StringDescs;
+        public USB_CONFIGURATION_DESCRIPTOR?            ConfigDesc;       // NULL if root HUB
+        public USB_BOS_DESCRIPTOR?                      BosDesc;          // NULL if root HUB
+        public StringDescriptorsCollection              StringDescs;
         public USB_NODE_CONNECTION_INFORMATION_EX_V2?   ConnectionInfoV2; // NULL if root HUB
         public UsbDevicePnpStrings                      UsbDeviceProperties;
         public DeviceInfoNode                           DeviceInfoNode;

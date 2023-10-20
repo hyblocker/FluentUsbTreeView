@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace FluentUsbTreeView.UsbTreeView.PInvoke {
+namespace FluentUsbTreeView.PInvoke {
     public static class User32 {
 
     }

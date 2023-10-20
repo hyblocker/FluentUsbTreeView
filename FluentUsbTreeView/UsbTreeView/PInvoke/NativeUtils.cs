@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace FluentUsbTreeView.UsbTreeView.PInvoke {
+namespace FluentUsbTreeView.PInvoke {
     public static class NativeUtils {
         public static IntPtr ToPtr(uint val) {
             IntPtr ptr = Marshal.AllocHGlobal(sizeof(uint));

@@ -1,6 +1,7 @@
 ﻿using FluentUsbTreeView.PInvoke;
 using FluentUsbTreeView.Ui;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -12,8 +13,10 @@ using System.Security.Policy;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Windows.Media;
 using Wpf.Ui.Controls;
 using static FluentUsbTreeView.PInvoke.UsbApi;
+using static System.Net.Mime.MediaTypeNames;
 using WpfTreeViewItem = System.Windows.Controls.TreeViewItem;
 
 namespace FluentUsbTreeView.UsbTreeView {
@@ -133,7 +136,7 @@ namespace FluentUsbTreeView.UsbTreeView {
             DevicesConnected = TotalDevicesConnected;
         }
 
-        public static void EnumerateHostController(WpfTreeViewItem hTreeParent, IntPtr hHCDev, ref string leafName, IntPtr deviceInfo, ref SP_DEVINFO_DATA deviceInfoData) {
+        public static void EnumerateHostController(WpfTreeViewItem hTreeParent, IntPtr hHCDev, ref string devicePath, IntPtr deviceInfo, ref SP_DEVINFO_DATA deviceInfoData) {
             string                  driverKeyName = null;
             WpfTreeViewItem         hHCItem = null;
             string                  rootHubName = null;
@@ -176,6 +179,7 @@ namespace FluentUsbTreeView.UsbTreeView {
                 DevProps = DeviceNode.DriverNameToDeviceProperties(driverKeyName, driverKeyName.Length);
             }
 
+            hcInfo.DevicePath = devicePath;
             hcInfo.DriverKey = driverKeyName;
             hcInfo.UsbDeviceProperties = DevProps;
 
@@ -223,7 +227,7 @@ namespace FluentUsbTreeView.UsbTreeView {
                 HandleNativeFailure();
             }
 
-            leafName = DeviceNameUtil.GetFriendlyUsbHostControllerName(hcInfo);
+            string leafName = DeviceNameUtil.GetFriendlyUsbHostControllerName(hcInfo);
 
             // Add this host controller to the USB device tree view.
             hHCItem = MainWindow.Instance.AddLeaf(hTreeParent, hcInfo, leafName, UsbTreeIcon.HostController, true);
@@ -270,9 +274,9 @@ namespace FluentUsbTreeView.UsbTreeView {
             USB_NODE_CONNECTION_INFORMATION_EX? ConnectionInfo,
             USB_NODE_CONNECTION_INFORMATION_EX_V2? ConnectionInfoV2,
             USB_PORT_CONNECTOR_PROPERTIES? PortConnectorProps,
-            USB_DESCRIPTOR_REQUEST? ConfigDesc,
-            USB_DESCRIPTOR_REQUEST? BosDesc,
-            StringDescriptorNode StringDescs,
+            USB_CONFIGURATION_DESCRIPTOR? ConfigDesc,
+            USB_BOS_DESCRIPTOR? BosDesc,
+            StringDescriptorsCollection StringDescs,
             UsbDevicePnpStrings DevProps
         ) {
             // Initialize locals to not allocated state so the error cleanup routine
@@ -373,6 +377,7 @@ namespace FluentUsbTreeView.UsbTreeView {
                     DevProps = DeviceNode.DriverNameToDeviceProperties(driverKeyName, cbDriverName);
                 }
             }
+            info.DevicePath = devicePath;
             info.UsbDeviceProperties = DevProps;
 
             // Build the leaf name from the port number and the device description
@@ -389,11 +394,13 @@ namespace FluentUsbTreeView.UsbTreeView {
             }
 
             if ( DevProps != null ) {
-                leafName = leafName + DeviceNameUtil.GetFriendlyUsbHubName(info);
+                leafName = leafName + info.UsbDeviceProperties.DeviceDesc;
+                // leafName = leafName + DeviceNameUtil.GetFriendlyUsbHubName(info);
             } else {
                 if ( isRootHub ) {
                     // External hub
-                    leafName = leafName + DeviceNameUtil.GetFriendlyUsbHubName(info);
+                    leafName = leafName + HubName;
+                    // leafName = leafName + DeviceNameUtil.GetFriendlyUsbHubName(info);
                 } else {
                     // Root hub
                     leafName = leafName + "RootHub";
@@ -411,14 +418,14 @@ namespace FluentUsbTreeView.UsbTreeView {
             }
 
             // Now recursively enumerate the ports of this hub.
-            EnumerateHubPorts( hItem, hHubDevice, hubInfo.u.HubInformation.HubDescriptor.bNumberOfPorts );
+            EnumerateHubPorts( hItem, hHubDevice, devicePath, hubInfo.u.HubInformation.HubDescriptor.bNumberOfPorts );
 
 
             Kernel32.CloseHandle(hHubDevice);
             return;
         }
 
-        private static unsafe void EnumerateHubPorts( WpfTreeViewItem hTreeParent, IntPtr hHubDevice, uint NumPorts) {
+        private static unsafe void EnumerateHubPorts( WpfTreeViewItem hTreeParent, IntPtr hHubDevice, string devicePath, uint NumPorts) {
             uint                index = 0;
             bool                success = false;
             // HRESULT             hr = S_OK;
@@ -431,9 +438,9 @@ namespace FluentUsbTreeView.UsbTreeView {
             USB_NODE_CONNECTION_INFORMATION_EX      connectionInfoEx;
             USB_PORT_CONNECTOR_PROPERTIES           pPortConnectorProps;
             USB_PORT_CONNECTOR_PROPERTIES           portConnectorProps;
-            USB_DESCRIPTOR_REQUEST?                 configDesc;
-            USB_DESCRIPTOR_REQUEST?                 bosDesc;
-            StringDescriptorNode                    stringDescs;
+            USB_CONFIGURATION_DESCRIPTOR?           configDesc;
+            USB_BOS_DESCRIPTOR?                     bosDesc;
+            StringDescriptorsCollection             stringDescs;
             USBDEVICEINFO                           info;
             USB_NODE_CONNECTION_INFORMATION_EX_V2   connectionInfoExV2;
             bool                                    connectionInfoExV2HasValue = true;
@@ -452,8 +459,8 @@ namespace FluentUsbTreeView.UsbTreeView {
                 portConnectorProps = new USB_PORT_CONNECTOR_PROPERTIES();
                 pPortConnectorProps = new USB_PORT_CONNECTOR_PROPERTIES();
                 // ZeroMemory(&portConnectorProps, sizeof(portConnectorProps));
-                configDesc = new USB_DESCRIPTOR_REQUEST();
-                bosDesc = new USB_DESCRIPTOR_REQUEST();
+                configDesc = new USB_CONFIGURATION_DESCRIPTOR();
+                bosDesc = new USB_BOS_DESCRIPTOR();
                 stringDescs = null;
                 info = new USBDEVICEINFO();
                 connectionInfoExV2 = new USB_NODE_CONNECTION_INFORMATION_EX_V2();
@@ -698,22 +705,21 @@ namespace FluentUsbTreeView.UsbTreeView {
                     bosDesc = null;
                 }
 
-                // @TODO: Do string descriptors
-#if false
-                if (configDesc != null &&
-                    AreThereStringDescriptors(&connectionInfoEx.DeviceDescriptor,
-                                              (USB_CONFIGURATION_DESCRIPTOR)(configDesc+1)))
-                {
-                    stringDescs = GetAllStringDescriptors (
-                                      hHubDevice,
-                                      index,
-                                      &connectionInfoEx.DeviceDescriptor,
-                                      (USB_CONFIGURATION_DESCRIPTOR)(configDesc+1));
-                }
-                else
-#endif
-                {
-                    stringDescs = null;
+                if ( configDesc.HasValue ) {
+
+                    USB_CONFIGURATION_DESCRIPTOR cfgDesc = configDesc.Value;
+
+                    if ( configDesc != null &&
+                        AreThereStringDescriptors(connectionInfoEx.DeviceDescriptor,
+                                                  ( USB_CONFIGURATION_DESCRIPTOR* ) ( &cfgDesc + 1 )) ) {
+                        stringDescs = GetAllStringDescriptors(
+                                          hHubDevice,
+                                          index,
+                                          connectionInfoEx.DeviceDescriptor,
+                                          ( USB_CONFIGURATION_DESCRIPTOR* ) ( &cfgDesc + 1 ));
+                    } else {
+                        stringDescs = null;
+                    }
                 }
 
                 USB_NODE_CONNECTION_INFORMATION_EX_V2? usbNodeInfoExV2 = null;
@@ -781,6 +787,7 @@ namespace FluentUsbTreeView.UsbTreeView {
 
                     info.DeviceInfoType = UsbDeviceInfoType.DeviceInfo;
                     info.DriverKey = driverKeyName;
+                    info.DevicePath = devicePath;
                     info.ConnectionInfo = connectionInfoEx;
                     info.PortConnectorProps = pPortConnectorProps;
                     info.ConfigDesc = configDesc;
@@ -1302,64 +1309,76 @@ namespace FluentUsbTreeView.UsbTreeView {
             }
         }
 
-        private static unsafe USB_DESCRIPTOR_REQUEST? GetConfigDescriptor(
+        private static unsafe USB_CONFIGURATION_DESCRIPTOR? GetConfigDescriptor(
             IntPtr hHubDevice,
             uint ConnectionIndex,
             byte DescriptorIndex
         ) {
+
+            USB_CONFIGURATION_DESCRIPTOR? configDesc =  GetUsbDescriptor<USB_CONFIGURATION_DESCRIPTOR>(
+                hHubDevice,
+                ConnectionIndex,
+                ( ushort ) ( ( ( int ) USB_DESCRIPTOR_TYPE.USB_CONFIGURATION_DESCRIPTOR_TYPE << 8 ) | DescriptorIndex ),
+                0);
+
+            return configDesc;
+#if false
             bool    success = false;
             int     nBytes = 0;
             int     nBytesReturned = 0;
 
-            byte[]   configDescReqBuf = new byte[SIZE_USB_DESCRIPTOR_REQUEST + Marshal.SizeOf(typeof(USB_CONFIGURATION_DESCRIPTOR))];
+            byte[]   configDescReqBuf = new byte[Marshal.SizeOf(typeof(USB_DESCRIPTOR_REQUEST)) + Marshal.SizeOf(typeof(USB_CONFIGURATION_DESCRIPTOR))];
 
-            USB_DESCRIPTOR_REQUEST         configDescReq    = new USB_DESCRIPTOR_REQUEST();
-            USB_CONFIGURATION_DESCRIPTOR* configDesc = (USB_CONFIGURATION_DESCRIPTOR*) (&configDescReq + SIZE_USB_DESCRIPTOR_REQUEST);
+            USB_DESCRIPTOR_REQUEST*        configDescReq = null;
+            USB_CONFIGURATION_DESCRIPTOR*  configDesc = null;
 
+            fixed ( byte* configDescReqBufPtr = configDescReqBuf ) {
+                configDescReq = ( USB_DESCRIPTOR_REQUEST* ) &configDescReqBufPtr;
+                configDesc = ( USB_CONFIGURATION_DESCRIPTOR* ) ( &configDescReqBufPtr + SIZE_USB_DESCRIPTOR_REQUEST );
 
-            // Request the Configuration Descriptor the first time using our
-            // local buffer, which is just big enough for the Cofiguration
-            // Descriptor itself.
-            //
-            // nBytes = ( uint ) Marshal.SizeOf(configDescReqBuf);
+                // Request the Configuration Descriptor the first time using our
+                // local buffer, which is just big enough for the Cofiguration
+                // Descriptor itself.
+                nBytes = configDescReqBuf.Length;
 
-            // configDescReq = ( USB_DESCRIPTOR_REQUEST ) configDescReqBuf;
-            // configDesc = ( USB_CONFIGURATION_DESCRIPTOR ) ( configDescReq + 1 );
+                // configDescReq = ( USB_DESCRIPTOR_REQUEST ) configDescReqBuf;
+                // configDesc = ( USB_CONFIGURATION_DESCRIPTOR ) ( configDescReq + 1 );
 
-            // Zero fill the entire request structure
-            //
-            // memset(configDescReq, 0, nBytes);
+                // Zero fill the entire request structure
+                //
+                // memset(configDescReq, 0, nBytes);
 
-            // Indicate the port from which the descriptor will be requested
-            //
-            configDescReq.ConnectionIndex = ConnectionIndex;
+                // Indicate the port from which the descriptor will be requested
+                //
+                configDescReq->ConnectionIndex = ConnectionIndex;
 
-            //
-            // USBHUB uses URB_FUNCTION_GET_DESCRIPTOR_FROM_DEVICE to process this
-            // IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION request.
-            //
-            // USBD will automatically initialize these fields:
-            //     bmRequest = 0x80
-            //     bRequest  = 0x06
-            //
-            // We must inititialize these fields:
-            //     wValue    = Descriptor Type (high) and Descriptor Index (low byte)
-            //     wIndex    = Zero (or Language ID for String Descriptors)
-            //     wLength   = Length of descriptor buffer
-            //
-            configDescReq.SetupPacket.wValue = ( ushort ) ( ( USB_CONFIGURATION_DESCRIPTOR_TYPE << 8 ) | DescriptorIndex );
+                //
+                // USBHUB uses URB_FUNCTION_GET_DESCRIPTOR_FROM_DEVICE to process this
+                // IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION request.
+                //
+                // USBD will automatically initialize these fields:
+                //     bmRequest = 0x80
+                //     bRequest  = 0x06
+                //
+                // We must inititialize these fields:
+                //     wValue    = Descriptor Type (high) and Descriptor Index (low byte)
+                //     wIndex    = Zero (or Language ID for String Descriptors)
+                //     wLength   = Length of descriptor buffer
+                //
+                configDescReq->SetupPacket.wValue = ( ushort ) ( ( ( int ) USB_DESCRIPTOR_TYPE.USB_CONFIGURATION_DESCRIPTOR_TYPE << 8 ) | DescriptorIndex );
 
-            configDescReq.SetupPacket.wLength = ( ushort ) ( nBytes - SIZE_USB_DESCRIPTOR_REQUEST );
+                configDescReq->SetupPacket.wLength = ( ushort ) ( nBytes - SIZE_USB_DESCRIPTOR_REQUEST );
+            }
 
             // Now issue the get descriptor request.
             //
             success = Kernel32.DeviceIoControl(hHubDevice,
                                       Kernel32.IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION,
-                                      ref configDescReq,
+                                      &configDescReqBuf,
                                       nBytes,
-                                      out configDescReq,
+                                      &configDescReqBuf,
                                       nBytes,
-                                      out nBytesReturned,
+                                      &nBytesReturned,
                                       IntPtr.Zero);
 
             if ( !success ) {
@@ -1382,46 +1401,52 @@ namespace FluentUsbTreeView.UsbTreeView {
             //
             nBytes = ( SIZE_USB_DESCRIPTOR_REQUEST + configDesc->wTotalLength );
 
-            configDescReq = new USB_DESCRIPTOR_REQUEST();
+            // Reallocate buffer
+            configDescReqBuf = new byte[nBytes];
 
-            // if ( configDescReq == null ) {
-            //     HandleNativeFailure();
-            //     return null;
-            // }
+            fixed ( byte* configDescReqBufPtr = configDescReqBuf ) {
+                configDescReq = ( USB_DESCRIPTOR_REQUEST* ) &configDescReqBufPtr;
+                configDesc = ( USB_CONFIGURATION_DESCRIPTOR* ) ( &configDescReqBufPtr + SIZE_USB_DESCRIPTOR_REQUEST );
 
-            // Indicate the port from which the descriptor will be requested
-            //
-            configDescReq.ConnectionIndex = ConnectionIndex;
-            
-            configDesc = (USB_CONFIGURATION_DESCRIPTOR*) (&configDescReq + SIZE_USB_DESCRIPTOR_REQUEST);
+                // if ( configDescReq == null ) {
+                //     HandleNativeFailure();
+                //     return null;
+                // }
 
-            //
-            // USBHUB uses URB_FUNCTION_GET_DESCRIPTOR_FROM_DEVICE to process this
-            // IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION request.
-            //
-            // USBD will automatically initialize these fields:
-            //     bmRequest = 0x80
-            //     bRequest  = 0x06
-            //
-            // We must inititialize these fields:
-            //     wValue    = Descriptor Type (high) and Descriptor Index (low byte)
-            //     wIndex    = Zero (or Language ID for String Descriptors)
-            //     wLength   = Length of descriptor buffer
-            //
-            configDescReq.SetupPacket.wValue = ( ushort ) ( ( USB_CONFIGURATION_DESCRIPTOR_TYPE << 8 ) | DescriptorIndex );
+                // Indicate the port from which the descriptor will be requested
+                //
+                configDescReq->ConnectionIndex = ConnectionIndex;
 
-            configDescReq.SetupPacket.wLength = ( ushort ) ( nBytes - SIZE_USB_DESCRIPTOR_REQUEST );
+                configDesc = ( USB_CONFIGURATION_DESCRIPTOR* ) ( &configDescReq + SIZE_USB_DESCRIPTOR_REQUEST );
+
+                //
+                // USBHUB uses URB_FUNCTION_GET_DESCRIPTOR_FROM_DEVICE to process this
+                // IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION request.
+                //
+                // USBD will automatically initialize these fields:
+                //     bmRequest = 0x80
+                //     bRequest  = 0x06
+                //
+                // We must inititialize these fields:
+                //     wValue    = Descriptor Type (high) and Descriptor Index (low byte)
+                //     wIndex    = Zero (or Language ID for String Descriptors)
+                //     wLength   = Length of descriptor buffer
+                //
+                configDescReq->SetupPacket.wValue = ( ushort ) ( ( ( int ) USB_DESCRIPTOR_TYPE.USB_CONFIGURATION_DESCRIPTOR_TYPE << 8 ) | DescriptorIndex );
+
+                configDescReq->SetupPacket.wLength = ( ushort ) ( nBytes - SIZE_USB_DESCRIPTOR_REQUEST );
+            }
 
             // Now issue the get descriptor request.
             //
 
             success = Kernel32.DeviceIoControl(hHubDevice,
                                       Kernel32.IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION,
-                                      ref configDescReq,
+                                      &configDescReqBuf,
                                       nBytes,
-                                      out configDescReq,
+                                      &configDescReqBuf,
                                       nBytes,
-                                      out nBytesReturned,
+                                      &nBytesReturned,
                                       IntPtr.Zero);
 
             if ( !success ) {
@@ -1442,7 +1467,14 @@ namespace FluentUsbTreeView.UsbTreeView {
                 return null;
             }
 
-            return configDescReq;
+            USB_DESCRIPTOR_REQUEST outRequest = new USB_DESCRIPTOR_REQUEST();
+            outRequest.ConnectionIndex  = configDescReq->ConnectionIndex;
+            outRequest.SetupPacket      = configDescReq->SetupPacket;
+            outRequest.Data             = configDescReq->Data;
+
+
+            return outRequest;
+#endif
         }
 
 
@@ -1459,7 +1491,18 @@ namespace FluentUsbTreeView.UsbTreeView {
         //
         //*****************************************************************************
 
-        private static unsafe USB_DESCRIPTOR_REQUEST? GetBOSDescriptor( IntPtr hHubDevice, uint ConnectionIndex ) {
+        private static unsafe USB_BOS_DESCRIPTOR? GetBOSDescriptor( IntPtr hHubDevice, uint ConnectionIndex ) {
+
+
+            USB_BOS_DESCRIPTOR? bosDesc =  GetUsbDescriptor<USB_BOS_DESCRIPTOR>(
+                hHubDevice,
+                ConnectionIndex,
+                (int) USB_DESCRIPTOR_TYPE.USB_BOS_DESCRIPTOR_TYPE << 8 ,
+                0);
+
+            return bosDesc;
+
+#if false
             bool    success = false;
             int     nBytes = 0;
             int     nBytesReturned = 0;
@@ -1498,7 +1541,7 @@ namespace FluentUsbTreeView.UsbTreeView {
             //     wIndex    = Zero (or Language ID for String Descriptors)
             //     wLength   = Length of descriptor buffer
             //
-            bosDescReq.SetupPacket.wValue = ( USB_BOS_DESCRIPTOR_TYPE << 8 );
+            bosDescReq.SetupPacket.wValue = ( (int) USB_DESCRIPTOR_TYPE.USB_BOS_DESCRIPTOR_TYPE << 8 );
 
             bosDescReq.SetupPacket.wLength = ( ushort ) ( nBytes - SIZE_USB_DESCRIPTOR_REQUEST );
 
@@ -1559,7 +1602,7 @@ namespace FluentUsbTreeView.UsbTreeView {
             //     wIndex    = Zero (or Language ID for String Descriptors)
             //     wLength   = Length of descriptor buffer
             //
-            bosDescReq.SetupPacket.wValue = ( USB_BOS_DESCRIPTOR_TYPE << 8 );
+            bosDescReq.SetupPacket.wValue = ( (int) USB_DESCRIPTOR_TYPE.USB_BOS_DESCRIPTOR_TYPE << 8 );
 
             bosDescReq.SetupPacket.wLength = ( ushort ) ( nBytes - SIZE_USB_DESCRIPTOR_REQUEST );
 
@@ -1594,9 +1637,8 @@ namespace FluentUsbTreeView.UsbTreeView {
             }
 
             return bosDescReq;
+#endif
         }
-
-#if false
 
         //*****************************************************************************
         //
@@ -1612,10 +1654,10 @@ namespace FluentUsbTreeView.UsbTreeView {
 
         private static unsafe bool AreThereStringDescriptors(
             USB_DEVICE_DESCRIPTOR DeviceDesc,
-            USB_CONFIGURATION_DESCRIPTOR ConfigDesc
+            USB_CONFIGURATION_DESCRIPTOR* ConfigDesc
         ) {
             void*                  descEnd = null;
-            USB_COMMON_DESCRIPTOR   commonDesc = new USB_COMMON_DESCRIPTOR();
+            USB_COMMON_DESCRIPTOR* commonDesc = null;
 
             // Check Device Descriptor strings
             if ( DeviceDesc.iManufacturer != 0 || DeviceDesc.iProduct != 0|| DeviceDesc.iSerialNumber != 0 ) {
@@ -1625,39 +1667,39 @@ namespace FluentUsbTreeView.UsbTreeView {
 
             // Check the Configuration and Interface Descriptor strings
 
-            descEnd = &ConfigDesc + ConfigDesc.wTotalLength;
+            descEnd = &ConfigDesc + ConfigDesc->wTotalLength;
 
-            commonDesc = ( USB_COMMON_DESCRIPTOR ) ConfigDesc;
+            commonDesc = ( USB_COMMON_DESCRIPTOR* ) ConfigDesc;
 
-            while ( ( PUCHAR ) commonDesc + sizeof(USB_COMMON_DESCRIPTOR) < descEnd &&
-                   ( PUCHAR ) commonDesc + commonDesc.bLength <= descEnd ) {
-                switch ( commonDesc.bDescriptorType ) {
+            while ( ( byte* ) commonDesc + sizeof(USB_COMMON_DESCRIPTOR) < descEnd &&
+                   ( byte* ) commonDesc + commonDesc->bLength <= descEnd ) {
+                switch ( commonDesc->bDescriptorType ) {
                     case USB_DESCRIPTOR_TYPE.USB_CONFIGURATION_DESCRIPTOR_TYPE:
                     case USB_DESCRIPTOR_TYPE.USB_OTHER_SPEED_CONFIGURATION_DESCRIPTOR_TYPE:
-                        if ( commonDesc.bLength != sizeof(USB_CONFIGURATION_DESCRIPTOR) ) {
+                        if ( commonDesc->bLength != sizeof(USB_CONFIGURATION_DESCRIPTOR) ) {
                             HandleNativeFailure();
                             break;
                         }
-                        if ( ( ( USB_CONFIGURATION_DESCRIPTOR ) commonDesc ).iConfiguration ) {
+                        if ( ( ( USB_CONFIGURATION_DESCRIPTOR* ) commonDesc )->iConfiguration != 0 ) {
                             return true;
                         }
-                        commonDesc = ( USB_COMMON_DESCRIPTOR ) ( ( PUCHAR ) commonDesc + commonDesc.bLength );
+                        commonDesc = ( USB_COMMON_DESCRIPTOR* ) ( ( byte* ) commonDesc + commonDesc->bLength );
                         continue;
 
                     case USB_DESCRIPTOR_TYPE.USB_INTERFACE_DESCRIPTOR_TYPE:
-                        if ( commonDesc.bLength != sizeof(USB_INTERFACE_DESCRIPTOR) &&
-                            commonDesc.bLength != sizeof(USB_INTERFACE_DESCRIPTOR2) ) {
+                        if ( commonDesc->bLength != sizeof(USB_INTERFACE_DESCRIPTOR) &&
+                            commonDesc->bLength != sizeof(USB_INTERFACE_DESCRIPTOR2) ) {
                             HandleNativeFailure();
                             break;
                         }
-                        if ( ( ( USB_INTERFACE_DESCRIPTOR ) commonDesc ).iInterface ) {
+                        if ( ( ( USB_INTERFACE_DESCRIPTOR* ) commonDesc )->iInterface != 0 ) {
                             return true;
                         }
-                        commonDesc = ( USB_COMMON_DESCRIPTOR ) ( ( PUCHAR ) commonDesc + commonDesc.bLength );
+                        commonDesc = ( USB_COMMON_DESCRIPTOR* ) ( ( byte* ) commonDesc + commonDesc->bLength );
                         continue;
 
                     default:
-                        commonDesc = ( USB_COMMON_DESCRIPTOR ) ( ( PUCHAR ) commonDesc + commonDesc.bLength );
+                        commonDesc = ( USB_COMMON_DESCRIPTOR* ) ( ( byte* ) commonDesc + commonDesc->bLength );
                         continue;
                 }
                 break;
@@ -1685,43 +1727,56 @@ namespace FluentUsbTreeView.UsbTreeView {
         //
         //*****************************************************************************
 
-        private static StringDescriptorNode GetAllStringDescriptors(
+        private static unsafe StringDescriptorsCollection GetAllStringDescriptors(
             IntPtr hHubDevice,
             uint ConnectionIndex,
             USB_DEVICE_DESCRIPTOR DeviceDesc,
-            USB_CONFIGURATION_DESCRIPTOR ConfigDesc
+            USB_CONFIGURATION_DESCRIPTOR* ConfigDesc
         ) {
-            StringDescriptorNode    supportedLanguagesString = null;
-            uint                    numLanguageIDs = 0;
-            ushort[]                  languageIDs = null;
+            StringDescriptorsCollection stringDescriptors = new StringDescriptorsCollection() {
+                Strings = new List<StringDescriptorNode>()
+            };
+            USB_STRING_DESCRIPTOR_LANG supportedLanguagesString = new USB_STRING_DESCRIPTOR_LANG();
+            uint                        numLanguageIDs = 0;
+            short[]                     languageIDs = null;
 
-            PUCHAR                  descEnd = null;
-            USB_COMMON_DESCRIPTOR  commonDesc = null;
-            byte                    uIndex = 1;
-            byte                    bInterfaceClass = 0;
-            bool                    getMoreStrings = false;
-            HRESULT                 hr = S_OK;
+            byte*                       descEnd = null;
+            USB_COMMON_DESCRIPTOR*      commonDesc = null;
+            byte                        uIndex = 1;
+            byte                        bInterfaceClass = 0;
+            bool                        getMoreStrings = false;
+            // HRESULT                     hr = S_OK;
+            bool                        hr = true;
 
             //
             // Get the array of supported Language IDs, which is returned
             // in String Descriptor 0
             //
-            supportedLanguagesString = GetStringDescriptor(hHubDevice,
+            USB_STRING_DESCRIPTOR_LANG? langDesc = GetStringLanguagesDescriptor(hHubDevice,
                                                            ConnectionIndex,
                                                            0,
                                                            0);
 
-            if ( supportedLanguagesString == null ) {
+            if ( langDesc == null ) {
                 return null;
             }
 
-            numLanguageIDs = (uint) (( supportedLanguagesString.StringDescriptor[0].bLength - 2 ) / 2);
+            supportedLanguagesString = langDesc.Value;
 
-            languageIDs = &supportedLanguagesString.StringDescriptor[0].bString[0];
+            numLanguageIDs = (uint) (( supportedLanguagesString.bLength - 2 ) / 2);
 
-            //
+            languageIDs = new short[numLanguageIDs];
+            short[] tmpLangs = new short[numLanguageIDs];
+            Marshal.Copy((IntPtr) supportedLanguagesString.bString, tmpLangs, 0, ( int ) numLanguageIDs);
+            Buffer.BlockCopy(tmpLangs, 0, languageIDs, 0, (int)numLanguageIDs);
+
+            // Prepare for string descriptors
+            stringDescriptors.Lang_bLength = supportedLanguagesString.bLength;
+            stringDescriptors.Lang_bDescriptorType = supportedLanguagesString.bDescriptorType;
+            stringDescriptors.LanguageIds = new short[numLanguageIDs];
+            Marshal.Copy(( IntPtr ) supportedLanguagesString.bString, stringDescriptors.LanguageIds, 0, ( int ) numLanguageIDs);
+
             // Get the Device Descriptor strings
-            //
 
             if ( DeviceDesc.iManufacturer != 0) {
                 GetStringDescriptors(hHubDevice,
@@ -1729,7 +1784,7 @@ namespace FluentUsbTreeView.UsbTreeView {
                                      DeviceDesc.iManufacturer,
                                      numLanguageIDs,
                                      languageIDs,
-                                     supportedLanguagesString);
+                                     stringDescriptors);
             }
 
             if ( DeviceDesc.iProduct != 0) {
@@ -1738,7 +1793,7 @@ namespace FluentUsbTreeView.UsbTreeView {
                                      DeviceDesc.iProduct,
                                      numLanguageIDs,
                                      languageIDs,
-                                     supportedLanguagesString);
+                                     stringDescriptors);
             }
 
             if ( DeviceDesc.iSerialNumber != 0 ) {
@@ -1747,50 +1802,48 @@ namespace FluentUsbTreeView.UsbTreeView {
                                      DeviceDesc.iSerialNumber,
                                      numLanguageIDs,
                                      languageIDs,
-                                     supportedLanguagesString);
+                                     stringDescriptors);
             }
 
-            //
             // Get the Configuration and Interface Descriptor strings
-            //
 
-            descEnd = ( PUCHAR ) ConfigDesc + ConfigDesc->wTotalLength;
+            descEnd = ( byte* ) ConfigDesc + ConfigDesc->wTotalLength;
 
-            commonDesc = ( USB_COMMON_DESCRIPTOR ) ConfigDesc;
+            commonDesc = ( USB_COMMON_DESCRIPTOR* ) ConfigDesc;
 
-            while ( ( PUCHAR ) commonDesc + Marshal.SizeOf(typeof(USB_COMMON_DESCRIPTOR)) < descEnd &&
-                   ( PUCHAR ) commonDesc + commonDesc.bLength <= descEnd ) {
-                switch ( commonDesc.bDescriptorType ) {
+            while ( ( byte* ) commonDesc + Marshal.SizeOf(typeof(USB_COMMON_DESCRIPTOR)) < descEnd &&
+                   ( byte* ) commonDesc + commonDesc->bLength <= descEnd ) {
+                switch ( commonDesc->bDescriptorType ) {
                     case USB_DESCRIPTOR_TYPE.USB_CONFIGURATION_DESCRIPTOR_TYPE:
                         if ( commonDesc->bLength != Marshal.SizeOf(typeof(USB_CONFIGURATION_DESCRIPTOR)) ) {
                             HandleNativeFailure();
                             break;
                         }
-                        if ( ( ( USB_CONFIGURATION_DESCRIPTOR ) commonDesc )->iConfiguration ) {
+                        if ( ( ( USB_CONFIGURATION_DESCRIPTOR* ) commonDesc )->iConfiguration != 0 ) {
                             GetStringDescriptors(hHubDevice,
                                                  ConnectionIndex,
-                                                 ( ( USB_CONFIGURATION_DESCRIPTOR ) commonDesc )->iConfiguration,
+                                                 ( ( USB_CONFIGURATION_DESCRIPTOR* ) commonDesc )->iConfiguration,
                                                  numLanguageIDs,
                                                  languageIDs,
-                                                 supportedLanguagesString);
+                                                 stringDescriptors);
                         }
-                        commonDesc = ( USB_COMMON_DESCRIPTOR ) ( ( PUCHAR ) commonDesc + commonDesc->bLength );
+                        commonDesc = ( USB_COMMON_DESCRIPTOR* ) ( ( byte* ) commonDesc + commonDesc->bLength );
                         continue;
 
-                    case USB_DESCRIPTOR_TYPE.USB_IAD_DESCRIPTOR_TYPE:
+                    case USB_DESCRIPTOR_TYPE.USB_INTERFACE_ASSOCIATION_DESCRIPTOR_TYPE:
                         if ( commonDesc->bLength < sizeof(USB_IAD_DESCRIPTOR) ) {
                             HandleNativeFailure();
                             break;
                         }
-                        if ( ( ( PUSB_IAD_DESCRIPTOR ) commonDesc )->iFunction ) {
+                        if ( ( ( USB_IAD_DESCRIPTOR* ) commonDesc )->iFunction != 0 ) {
                             GetStringDescriptors(hHubDevice,
                                                  ConnectionIndex,
-                                                 ( ( PUSB_IAD_DESCRIPTOR ) commonDesc )->iFunction,
+                                                 ( ( USB_IAD_DESCRIPTOR* ) commonDesc )->iFunction,
                                                  numLanguageIDs,
                                                  languageIDs,
-                                                 supportedLanguagesString);
+                                                 stringDescriptors);
                         }
-                        commonDesc = ( USB_COMMON_DESCRIPTOR ) ( ( PUCHAR ) commonDesc + commonDesc->bLength );
+                        commonDesc = ( USB_COMMON_DESCRIPTOR* ) ( ( byte* ) commonDesc + commonDesc->bLength );
                         continue;
 
                     case USB_DESCRIPTOR_TYPE.USB_INTERFACE_DESCRIPTOR_TYPE:
@@ -1799,28 +1852,26 @@ namespace FluentUsbTreeView.UsbTreeView {
                             HandleNativeFailure();
                             break;
                         }
-                        if ( ( ( USB_INTERFACE_DESCRIPTOR ) commonDesc )->iInterface ) {
+                        if ( ( ( USB_INTERFACE_DESCRIPTOR* ) commonDesc )->iInterface != 0 ) {
                             GetStringDescriptors(hHubDevice,
                                                  ConnectionIndex,
-                                                 ( ( USB_INTERFACE_DESCRIPTOR ) commonDesc )->iInterface,
+                                                 ( ( USB_INTERFACE_DESCRIPTOR* ) commonDesc )->iInterface,
                                                  numLanguageIDs,
                                                  languageIDs,
-                                                 supportedLanguagesString);
+                                                 stringDescriptors);
                         }
 
-                        //
                         // We need to display more string descriptors for the following
                         // interface classes
-                        //
-                        bInterfaceClass = ( ( USB_INTERFACE_DESCRIPTOR ) commonDesc )->bInterfaceClass;
-                        if ( bInterfaceClass == USB_DEVICE_CLASS_VIDEO ) {
+                        bInterfaceClass = ( ( USB_INTERFACE_DESCRIPTOR* ) commonDesc )->bInterfaceClass;
+                        if ( bInterfaceClass == UsbApi.USB_DEVICE_CLASS_VIDEO ) {
                             getMoreStrings = true;
                         }
-                        commonDesc = ( USB_COMMON_DESCRIPTOR ) ( ( PUCHAR ) commonDesc + commonDesc->bLength );
+                        commonDesc = ( USB_COMMON_DESCRIPTOR* ) ( ( byte* ) commonDesc + commonDesc->bLength );
                         continue;
 
                     default:
-                        commonDesc = ( USB_COMMON_DESCRIPTOR ) ( ( PUCHAR ) commonDesc + commonDesc->bLength );
+                        commonDesc = ( USB_COMMON_DESCRIPTOR* ) ( ( byte* ) commonDesc + commonDesc->bLength );
                         continue;
                 }
                 break;
@@ -1838,20 +1889,31 @@ namespace FluentUsbTreeView.UsbTreeView {
                 // historically USBView made this query, so the query should be safe for
                 // video devices.
                 //
-                for ( uIndex = 1; SUCCEEDED(hr) && ( uIndex < NUM_STRING_DESC_TO_GET ); uIndex++ ) {
+                for ( uIndex = 1; hr && ( uIndex < NUM_STRING_DESC_TO_GET ); uIndex++ ) {
                     hr = GetStringDescriptors(hHubDevice,
                                               ConnectionIndex,
                                               uIndex,
                                               numLanguageIDs,
                                               languageIDs,
-                                              supportedLanguagesString);
+                                              stringDescriptors);
                 }
             }
 
-            return supportedLanguagesString;
+            return stringDescriptors;
         }
 
 
+        private static unsafe USB_STRING_DESCRIPTOR_LANG? GetStringLanguagesDescriptor(
+            IntPtr hHubDevice,
+            uint ConnectionIndex,
+            byte DescriptorIndex,
+            short LanguageID
+        ) {
+
+            USB_STRING_DESCRIPTOR_LANG? langDesc =  GetUsbDescriptor<USB_STRING_DESCRIPTOR_LANG>(hHubDevice, ConnectionIndex, ( ushort ) ( ( ( int ) USB_DESCRIPTOR_TYPE.USB_STRING_DESCRIPTOR_TYPE << 8 ) | DescriptorIndex ), LanguageID);
+
+            return langDesc;
+        }
 
         //*****************************************************************************
         //
@@ -1869,27 +1931,42 @@ namespace FluentUsbTreeView.UsbTreeView {
         //
         //*****************************************************************************
 
-        private static StringDescriptorNode
-        GetStringDescriptor(
+        private static unsafe StringDescriptorNode GetStringDescriptor(
             IntPtr hHubDevice,
             uint ConnectionIndex,
             byte DescriptorIndex,
-            ushort LanguageID
+            short LanguageID
         ) {
+
+            USB_STRING_DESCRIPTOR? stringDesc =  GetUsbDescriptor<USB_STRING_DESCRIPTOR>(hHubDevice, ConnectionIndex, ( ushort ) ( ( ( int ) USB_DESCRIPTOR_TYPE.USB_STRING_DESCRIPTOR_TYPE << 8 ) | DescriptorIndex ), LanguageID);
+
+            if ( stringDesc.HasValue ) {
+
+                StringDescriptorNode stringDescNode = new StringDescriptorNode();
+
+                stringDescNode.DescriptorIndex = DescriptorIndex;
+                stringDescNode.LanguageID = LanguageID;
+                stringDescNode.StringDescriptor = stringDesc.Value.Clone();
+                return stringDescNode;
+            } else {
+                return null;
+            }
+
+#if false
             bool    success = false;
-            uint   nBytes = 0;
-            uint   nBytesReturned = 0;
+            int     nBytes = 0;
+            int     nBytesReturned = 0;
 
-            // byte[]   stringDescReqBuf = new byte[SIZE_USB_DESCRIPTOR_REQUEST + MAXIMUM_USB_STRING_LENGTH];
+            byte[]   stringDescReqBuf = new byte[SIZE_USB_DESCRIPTOR_REQUEST + MAXIMUM_USB_STRING_LENGTH];
 
-            USB_DESCRIPTOR_REQUEST stringDescReq = new USB_DESCRIPTOR_REQUEST();
-            USB_STRING_DESCRIPTOR  stringDesc = new USB_STRING_DESCRIPTOR();
+            USB_DESCRIPTOR_REQUEST* stringDescReq = null;
+            USB_STRING_DESCRIPTOR* stringDesc = null;
             StringDescriptorNode stringDescNode = null;
 
-            // nBytes = (uint) Marshal.SizeOf(stringDescReqBuf);
+            nBytes = stringDescReqBuf.Length;
 
-            // stringDescReq = ( USB_DESCRIPTOR_REQUEST ) stringDescReqBuf;
-            // stringDesc = ( USB_STRING_DESCRIPTOR ) ( stringDescReq + 1 );
+            stringDescReq = ( USB_DESCRIPTOR_REQUEST* ) &stringDescReqBuf;
+            stringDesc = ( USB_STRING_DESCRIPTOR* ) ( &stringDescReqBuf + SIZE_USB_DESCRIPTOR_REQUEST );
 
             // Zero fill the entire request structure
             //
@@ -1897,7 +1974,7 @@ namespace FluentUsbTreeView.UsbTreeView {
 
             // Indicate the port from which the descriptor will be requested
             //
-            stringDescReq.ConnectionIndex = ConnectionIndex;
+            stringDescReq->ConnectionIndex = ConnectionIndex;
 
             //
             // USBHUB uses URB_FUNCTION_GET_DESCRIPTOR_FROM_DEVICE to process this
@@ -1912,26 +1989,24 @@ namespace FluentUsbTreeView.UsbTreeView {
             //     wIndex    = Zero (or Language ID for String Descriptors)
             //     wLength   = Length of descriptor buffer
             //
-            stringDescReq.SetupPacket.wValue = (ushort) (( USB_STRING_DESCRIPTOR_TYPE << 8 ) | DescriptorIndex);
+            stringDescReq->SetupPacket.wValue = (ushort) (( (int)USB_DESCRIPTOR_TYPE.USB_STRING_DESCRIPTOR_TYPE << 8 ) | DescriptorIndex);
 
-            stringDescReq.SetupPacket.wIndex = LanguageID;
+            stringDescReq->SetupPacket.wIndex = LanguageID;
 
-            stringDescReq.SetupPacket.wLength = ( ushort ) ( nBytes - SIZE_USB_DESCRIPTOR_REQUEST );
+            stringDescReq->SetupPacket.wLength = ( ushort ) ( nBytes - SIZE_USB_DESCRIPTOR_REQUEST );
 
             // Now issue the get descriptor request.
             //
             success = Kernel32.DeviceIoControl(hHubDevice,
                                       Kernel32.IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION,
-                                      ref stringDescReq,
+                                      &stringDescReq,
                                       nBytes,
-                                      out stringDescReq,
+                                      &stringDescReq,
                                       nBytes,
-                                      out nBytesReturned,
+                                      &nBytesReturned,
                                       IntPtr.Zero);
 
-            //
             // Do some sanity checks on the return from the get descriptor request.
-            //
 
             if ( !success ) {
                 HandleNativeFailure();
@@ -1943,17 +2018,17 @@ namespace FluentUsbTreeView.UsbTreeView {
                 return null;
             }
 
-            if ( stringDesc.bDescriptorType != USB_STRING_DESCRIPTOR_TYPE ) {
+            if ( stringDesc->bDescriptorType != USB_DESCRIPTOR_TYPE.USB_STRING_DESCRIPTOR_TYPE ) {
                 HandleNativeFailure();
                 return null;
             }
 
-            if ( stringDesc.bLength != nBytesReturned - Marshal.SizeOf(typeof( USB_DESCRIPTOR_REQUEST )) ) {
+            if ( stringDesc->bLength != nBytesReturned - Marshal.SizeOf(typeof( USB_DESCRIPTOR_REQUEST )) ) {
                 HandleNativeFailure();
                 return null;
             }
 
-            if ( stringDesc.bLength % 2 != 0 ) {
+            if ( stringDesc->bLength % 2 != 0 ) {
                 HandleNativeFailure();
                 return null;
             }
@@ -1970,16 +2045,17 @@ namespace FluentUsbTreeView.UsbTreeView {
             //     HandleNativeFailure();
             //     return null;
             // }
-            stringDescNode = new StringDescriptorNode(null);
+            stringDescNode = new StringDescriptorNode();
 
             stringDescNode.DescriptorIndex = DescriptorIndex;
             stringDescNode.LanguageID = LanguageID;
-
-            memcpy(stringDescNode.StringDescriptor,
-                   stringDesc,
-                   stringDesc.bLength);
+            stringDescNode.StringDescriptor = new USB_STRING_DESCRIPTOR();
+            stringDescNode.StringDescriptor.bLength = stringDesc->bLength;
+            stringDescNode.StringDescriptor.bDescriptorType = stringDesc->bDescriptorType;
+            stringDescNode.StringDescriptor.bString = stringDesc->bString;
 
             return stringDescNode;
+#endif
         }
 
 
@@ -2011,8 +2087,8 @@ namespace FluentUsbTreeView.UsbTreeView {
             uint                           ConnectionIndex,
             byte                           DescriptorIndex,
             uint                           NumLanguageIDs,
-            ushort[]                       LanguageIDs,
-            StringDescriptorNode StringDescNodeHead
+            short[]                        LanguageIDs,
+            StringDescriptorsCollection    DescriptorsList
         ) {
             StringDescriptorNode tail = null;
             StringDescriptorNode trailing = null;
@@ -2029,34 +2105,66 @@ namespace FluentUsbTreeView.UsbTreeView {
             // 
             //     trailing = tail;
             // }
-            foreach (var node in StringDescNodeHead.Node.List ) {
+            foreach (var node in DescriptorsList.Strings ) {
                 if (node.DescriptorIndex == DescriptorIndex ) {
                     return true;
                 }
             }
 
-            tail = StringDescNodeHead.Node.List.Last.Value;
+            // tail = StringDescNodeHead.Node.List.Last.Value;
 
             //
             // Get the next String Descriptor. If this is null, then we're done (return)
             // Otherwise, loop through all Language IDs
-            //
-            for ( i = 0; ( tail != null ) && ( i < NumLanguageIDs ); i++ ) {
-                tail->Next = GetStringDescriptor(hHubDevice,
+            bool foundDescriptor = false;
+            for ( i = 0; ( i < NumLanguageIDs ); i++ ) {
+                StringDescriptorNode descriptor = GetStringDescriptor(hHubDevice,
                                                  ConnectionIndex,
                                                  DescriptorIndex,
                                                  LanguageIDs[i]);
-
-                tail = tail->Next;
+                if ( descriptor != null) {
+                    DescriptorsList.Strings.Add( descriptor );
+                    foundDescriptor = true;
+                }
+                // tail = tail->Next;
             }
 
-            if ( tail == null ) {
-                return false;
-            } else {
-                return true;
-            }
+            return foundDescriptor;
         }
-#endif
+
+        private static T? GetUsbDescriptor<T>(IntPtr hDevice, uint ConnectionIndex, ushort wValue, short LangIndex) where T : struct {
+
+            int nBytesReturned;
+            int nBytes = 255;
+
+            // build a request for string descriptor
+            USB_DESCRIPTOR_REQUEST Request = new USB_DESCRIPTOR_REQUEST();
+            Request.ConnectionIndex = ConnectionIndex;
+            Request.SetupPacket.wValue = wValue;
+            Request.SetupPacket.wLength = ( ushort ) ( nBytes - Marshal.SizeOf(Request) );
+            Request.SetupPacket.wIndex = LangIndex;
+
+            // Geez, I wish C# had a Marshal.MemSet() method
+            string NullString = new string((char)0, nBytes / Marshal.SystemDefaultCharSize);
+            IntPtr ptrRequest = Marshal.StringToHGlobalAuto(NullString);
+            Marshal.StructureToPtr(Request, ptrRequest, true);
+
+            // Use an IOCTL call to request the String Descriptor
+            if ( Kernel32.DeviceIoControl(hDevice, Kernel32.IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION, ptrRequest, nBytes, ptrRequest, nBytes, out nBytesReturned, IntPtr.Zero) ) {
+                // The location of the string descriptor is immediately after
+                // the Request structure.  Because this location is not "covered"
+                // by the structure allocation, we're forced to zero out this
+                // chunk of memory by using the StringToHGlobalAuto() hack above
+                IntPtr ptrStringDesc = new IntPtr(ptrRequest.ToInt32() + Marshal.SizeOf(Request));
+                T descriptorData = (T)Marshal.PtrToStructure(ptrStringDesc, typeof(T));
+                return descriptorData;
+            } else {
+                HandleNativeFailure();
+            }
+            Marshal.FreeHGlobal(ptrRequest);
+
+            return null;
+        }
 
         private static DeviceInfoNode FindMatchingDeviceNodeForDriverName( string DriverKeyName, bool IsHub ) {
             DeviceInfoNode pNode            = new DeviceInfoNode();

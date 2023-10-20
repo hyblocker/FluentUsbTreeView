@@ -89,6 +89,9 @@
   <PropertyGroup>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>application.ico</ApplicationIcon>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -179,17 +182,14 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Assets\computer-256.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Resource Include="Assets\wpfui-icon-256.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Assets\usb-256.png" />
     <Resource Include="Assets\usb-controller-256.png" />
     <Resource Include="Assets\usb-hub-256.png" />
     <Resource Include="Assets\usb-port-256.png" />
     <Resource Include="Assets\usb-ssport-256.png" />
     <Resource Include="Assets\usb-ssusb-256.png" />
+    <Resource Include="Assets\usb-malfunction-256.png" />
+    <Resource Include="Assets\application-icon-256.png" />
   </ItemGroup>
   <Target Name="EmbedReferencedAssemblies" AfterTargets="ResolveAssemblyReferences">
     <ItemGroup>

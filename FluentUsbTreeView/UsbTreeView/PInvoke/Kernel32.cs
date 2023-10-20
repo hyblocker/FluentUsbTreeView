@@ -70,6 +70,12 @@ namespace FluentUsbTreeView.PInvoke {
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool CloseHandle(IntPtr hObject);
 
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
+        [SuppressUnmanagedCodeSecurity]
+        [return: MarshalAs(UnmanagedType.U8)]
+        public static extern ulong GetTickCount64();
+
         [DllImport("msvcrt.dll", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl)]
         public static extern int sscanf(string buffer, string format, out uint arg0, out uint arg1, out uint arg3, out uint arg4);
 

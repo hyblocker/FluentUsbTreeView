@@ -7,12 +7,12 @@ using System.Windows;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("FluentUsbTreeView")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyTitle("Fluent USB Tree View")]
+[assembly: AssemblyDescription("A modern USB tree viewer")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("FluentUsbTreeView")]
-[assembly: AssemblyCopyright("Copyright ©  2023")]
+[assembly: AssemblyProduct("Fluent Usb Tree View")]
+[assembly: AssemblyCopyright("Copyright © Hyblocker 2023")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

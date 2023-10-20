@@ -37,35 +37,9 @@ namespace FluentUsbTreeView.PInvoke {
         public const int USB_ENDPOINT_SUPERSPEED_ISO_MAX_PACKET_SIZE        = 1024;
         public const int USB_ENDPOINT_SUPERSPEED_INTERRUPT_MAX_PACKET_SIZE  = 1024;
 
-        public const int MAXIMUM_USB_STRING_LENGTH = 255;
+        public const int USB_DEVICE_CLASS_VIDEO = 0x0E;
 
-        //
-        // USB 1.1: 9.4 Standard Device Requests, Table 9-5. Descriptor Types
-        //
-        public const int USB_DEVICE_DESCRIPTOR_TYPE                                     = 0x01;
-        public const int USB_CONFIGURATION_DESCRIPTOR_TYPE                              = 0x02;
-        public const int USB_STRING_DESCRIPTOR_TYPE                                     = 0x03;
-        public const int USB_INTERFACE_DESCRIPTOR_TYPE                                  = 0x04;
-        public const int USB_ENDPOINT_DESCRIPTOR_TYPE                                   = 0x05;
-        //
-        // USB 2.0: 9.4 Standard Device Requests, Table 9-5. Descriptor Types
-        //
-        public const int USB_DEVICE_QUALIFIER_DESCRIPTOR_TYPE                           = 0x06;
-        public const int USB_OTHER_SPEED_CONFIGURATION_DESCRIPTOR_TYPE                  = 0x07;
-        public const int USB_INTERFACE_POWER_DESCRIPTOR_TYPE                            = 0x08;
-        //
-        // USB 3.0: 9.4 Standard Device Requests, Table 9-5. Descriptor Types
-        //
-        public const int USB_OTG_DESCRIPTOR_TYPE                                        = 0x09;
-        public const int USB_DEBUG_DESCRIPTOR_TYPE                                      = 0x0A;
-        public const int USB_INTERFACE_ASSOCIATION_DESCRIPTOR_TYPE                      = 0x0B;
-        public const int USB_BOS_DESCRIPTOR_TYPE                                        = 0x0F;
-        public const int USB_DEVICE_CAPABILITY_DESCRIPTOR_TYPE                          = 0x10;
-        public const int USB_SUPERSPEED_ENDPOINT_COMPANION_DESCRIPTOR_TYPE              = 0x30;
-        //
-        // USB 3.1: 9.4 Standard Device Requests, Table 9-6. Descriptor Types
-        //
-        public const int USB_SUPERSPEEDPLUS_ISOCH_ENDPOINT_COMPANION_DESCRIPTOR_TYPE    = 0x31;
+        public const int MAXIMUM_USB_STRING_LENGTH = 255;
 
 
         public enum USB_DEVICE_SPEED : uint {
@@ -199,12 +173,13 @@ namespace FluentUsbTreeView.PInvoke {
             // USB 3.0: 9.4 Standard Device Requests, Table 9-5. Descriptor Types
             USB_OTG_DESCRIPTOR_TYPE                                     = 0x09,
             USB_DEBUG_DESCRIPTOR_TYPE                                   = 0x0A,
+            USB_IAD_DESCRIPTOR_TYPE                                     = 0x0B,
             USB_INTERFACE_ASSOCIATION_DESCRIPTOR_TYPE                   = 0x0B,
             USB_BOS_DESCRIPTOR_TYPE                                     = 0x0F,
             USB_DEVICE_CAPABILITY_DESCRIPTOR_TYPE                       = 0x10,
             USB_SUPERSPEED_ENDPOINT_COMPANION_DESCRIPTOR_TYPE           = 0x30,
             // USB 3.1: 9.4 Standard Device Requests, Table 9-6. Descriptor Types
-            USB_SUPERSPEEDPLUS_ISOCH_ENDPOINT_COMPANION_DESCRIPTOR_TYPE = 0x31
+            USB_SUPERSPEEDPLUS_ISOCH_ENDPOINT_COMPANION_DESCRIPTOR_TYPE = 0x31,
         }
 
         public enum USB_HUB_NODE : uint {
@@ -441,20 +416,20 @@ namespace FluentUsbTreeView.PInvoke {
             public USB_NODE_CONNECTION_INFORMATION_EX_V2_FLAGS Flags;
         }
 
-        [StructLayout(LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
         public struct USB_SETUP_PACKET {
             public byte bmRequest;
             public byte bRequest;
             public ushort wValue;
-            public ushort wIndex;
+            public short wIndex;
             public ushort wLength;
         }
-        [StructLayout(LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
         public struct USB_DESCRIPTOR_REQUEST {
             public uint ConnectionIndex;
             public USB_SETUP_PACKET SetupPacket;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256, ArraySubType = UnmanagedType.I1 )]
-            public byte[] Data;
+            // [MarshalAs(UnmanagedType.ByValArray, SizeConst = 256, ArraySubType = UnmanagedType.I1 )]
+            // public byte[] Data;
         }
 
         public const int SIZE_USB_DESCRIPTOR_REQUEST = 12;
@@ -472,6 +447,34 @@ namespace FluentUsbTreeView.PInvoke {
             public byte     iConfiguration;
             public byte     bmAttributes;
             public byte     MaxPower;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct USB_INTERFACE_DESCRIPTOR {
+            public byte bLength;
+            public byte bDescriptorType;
+            public byte bInterfaceNumber;
+            public byte bAlternateSetting;
+            public byte bNumEndpoints;
+            public byte bInterfaceClass;
+            public byte bInterfaceSubClass;
+            public byte bInterfaceProtocol;
+            public byte iInterface;
+        }
+
+        // Common Class Interface Descriptor
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct USB_INTERFACE_DESCRIPTOR2 {
+            public byte     bLength;             // offset 0, size 1
+            public byte     bDescriptorType;     // offset 1, size 1
+            public byte     bInterfaceNumber;    // offset 2, size 1
+            public byte     bAlternateSetting;   // offset 3, size 1
+            public byte     bNumEndpoints;       // offset 4, size 1
+            public byte     bInterfaceClass;     // offset 5, size 1
+            public byte     bInterfaceSubClass;  // offset 6, size 1
+            public byte     bInterfaceProtocol;  // offset 7, size 1
+            public byte     iInterface;          // offset 8, size 1
+            public ushort   wNumClasses;         // offset 9, size 2
         }
 
         // USB 3.0: 9.6.2 Binary Device Object Store (BOS), Table 9-9. BOS Descriptor
@@ -493,13 +496,34 @@ namespace FluentUsbTreeView.PInvoke {
         // USB 2.0: 9.6.7 String, Table 9-16. UNICODE String Descriptor
         // USB 3.0: 9.6.8 String, Table 9-22. UNICODE String Descriptor
 
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto, Pack = 1)]
         public struct USB_STRING_DESCRIPTOR {
             public byte bLength;
-            public byte bDescriptorType;
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst=MAXIMUM_USB_STRING_LENGTH)]
-            public string bString;
+            public USB_DESCRIPTOR_TYPE bDescriptorType;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = MAXIMUM_USB_STRING_LENGTH, ArraySubType = UnmanagedType.U1 )]
+            public byte[] bString;
         }
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto, Pack = 1)]
+        public unsafe struct USB_STRING_DESCRIPTOR_LANG {
+            public byte bLength;
+            public USB_DESCRIPTOR_TYPE bDescriptorType;
+            public fixed ushort bString[MAXIMUM_USB_STRING_LENGTH / 2];
+        }
+
+        // IAD Descriptor
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto, Pack = 1)]
+        public struct USB_IAD_DESCRIPTOR {
+            public byte bLength;
+            public byte bDescriptorType;
+            public byte bFirstInterface;
+            public byte bInterfaceCount;
+            public byte bFunctionClass;
+            public byte bFunctionSubClass;
+            public byte bFunctionProtocol;
+            public byte iFunction;
+        }
+
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
         public struct USB_POWER_INFO {
