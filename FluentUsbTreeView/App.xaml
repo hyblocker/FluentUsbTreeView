@@ -4,6 +4,8 @@
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:local="clr-namespace:FluentUsbTreeView"
              Startup="Application_Startup"
+             DispatcherUnhandledException="Application_DispatcherUnhandledException"
+             Exit="Application_Exit"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>
