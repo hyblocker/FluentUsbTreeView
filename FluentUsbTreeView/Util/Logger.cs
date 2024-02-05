@@ -55,10 +55,6 @@ namespace FluentUsbTreeView {
             LogInternal(FormatToLogMessage(obj.ToString(), "F", lineNumber, filePath, memberName), ConsoleColor.DarkRed);
         }
 
-        internal static void PrivateDoNotUseLogExecption(string message, string displayString, [CallerLineNumber] int lineNumber = 0, [CallerFilePath] string filePath = "", [CallerMemberName] string memberName = "") {
-            LogInternalUniqueMessage(FormatToLogMessage(message, "F", lineNumber, filePath, memberName), FormatToLogMessage(displayString, "F", lineNumber, filePath, memberName), ConsoleColor.DarkRed);
-        }
-
         #endregion
 
         #region Logger Internals
@@ -72,8 +68,15 @@ namespace FluentUsbTreeView {
             else
                 LogFilePath = filePath;
 
+            string originalFilePath = LogFilePath;
             LogFilePath = Path.GetFullPath(filePath);
             string dir = Path.GetFullPath(Path.GetDirectoryName(LogFilePath));
+
+            if ( dir.ToLowerInvariant().Contains(Environment.GetFolderPath(Environment.SpecialFolder.Windows).ToLowerInvariant())) {
+                // Invalid dir, default to current app path
+                dir = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
+                LogFilePath = Path.GetFullPath(Path.Combine(dir, originalFilePath));
+            }
 
             bool loggingPathDidntExist = false;
             if ( !Directory.Exists(dir) ) {
@@ -113,22 +116,6 @@ namespace FluentUsbTreeView {
         }
 
         private static void LogInternal(string message, ConsoleColor color) {
-            Console.ForegroundColor = color;
-            Console.WriteLine(message);
-            if ( LogFilePath == null ) {
-                s_logLines.Add((color, message));
-                return;
-            }
-            if ( s_logLines.Count > 0 ) {
-                for ( int i = 0; i < s_logLines.Count; i++ ) {
-                    File.AppendAllLines(LogFilePath, new[] { s_logLines[i].Item2 });
-                }
-                s_logLines.Clear();
-            }
-            File.AppendAllLines(LogFilePath, new[] { message });
-        }
-
-        private static void LogInternalUniqueMessage(string message, string messageUI, ConsoleColor color) {
             Console.ForegroundColor = color;
             Console.WriteLine(message);
             if ( LogFilePath == null ) {
