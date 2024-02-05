@@ -37,8 +37,7 @@ namespace FluentUsbTreeView.UsbTreeView {
 
             // Examine all present devices to see if any match the given DriverName
 
-            Guid nullGuid = Guid.Empty;
-            deviceInfo = SetupApi.SetupDiGetClassDevs(ref nullGuid, null, IntPtr.Zero, DIGCF.DIGCF_ALLCLASSES | DIGCF.DIGCF_PRESENT);
+            deviceInfo = SetupApi.SetupDiGetClassDevs(IntPtr.Zero, null, IntPtr.Zero, DIGCF.DIGCF_ALLCLASSES | DIGCF.DIGCF_PRESENT);
 
             if ( deviceInfo == Kernel32.INVALID_HANDLE_VALUE ) {
                 status = false;
@@ -153,9 +152,12 @@ namespace FluentUsbTreeView.UsbTreeView {
             // Get device instance
             status = DriverNameToDeviceInst(DriverName, cbDriverName, out deviceInfo, out deviceInfoData);
             if ( status == false ) {
-                goto Done;
+                // goto Done;
             }
 
+            return PollDeviceProperties(deviceInfo, deviceInfoData);
+
+            /*
             len = 0;
             status = SetupApi.SetupDiGetDeviceInstanceId(deviceInfo, ref deviceInfoData, null, 0, out len);
             lastError = Marshal.GetLastWin32Error();
@@ -243,7 +245,103 @@ namespace FluentUsbTreeView.UsbTreeView {
             }
 
             return DevProps;
+            */
         }
 
+        public static UsbDevicePnpStrings PollDeviceProperties(IntPtr deviceInfo, SP_DEVINFO_DATA deviceInfoData) {
+            int             len;
+            bool            status;
+            UsbDevicePnpStrings DevProps = new UsbDevicePnpStrings();
+            int             lastError;
+
+            // Get device instance
+            len = 0;
+            status = SetupApi.SetupDiGetDeviceInstanceId(deviceInfo, ref deviceInfoData, null, 0, out len);
+            lastError = Marshal.GetLastWin32Error();
+
+
+            if ( status != false && lastError != Kernel32.ERROR_INSUFFICIENT_BUFFER ) {
+                status = false;
+                goto Done;
+            }
+
+            // An extra byte is required for the terminating character
+            len++;
+            StringBuilder deviceIdStringBuilder = new StringBuilder( len);
+
+            status = SetupApi.SetupDiGetDeviceInstanceId(deviceInfo, ref deviceInfoData, deviceIdStringBuilder, len, out len);
+            if ( status == false ) {
+                goto Done;
+            }
+            DevProps.DeviceId = deviceIdStringBuilder.ToString();
+
+            // Get device desc
+            status = UsbEnumator.GetDevicePropertyString(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_DEVICEDESC, out DevProps.DeviceDesc);
+            if ( status == false ) {
+                goto Done;
+            }
+
+            // Get device problem code
+            CR_RESULT pollStatus = Cfgmgr32.CM_Get_DevNode_Status(out DevProps.Status, out DevProps.ProblemCode, deviceInfoData.DevInst, 0);
+
+            // We don't fail if the following registry query fails as these fields are additional information only
+            UsbEnumator.GetDevicePropertyString(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_HARDWAREID, out DevProps.HwId);
+            UsbEnumator.GetDevicePropertyString(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_SERVICE, out DevProps.Service);
+            UsbEnumator.GetDevicePropertyString(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_CLASS, out DevProps.DeviceClass);
+            UsbEnumator.GetDevicePropertyStruct(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_CLASSGUID, out DevProps.DeviceClassGuid);
+            UsbEnumator.GetDevicePropertyStruct(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_DEVICE_POWER_DATA, out DevProps.PowerState);
+            // to cast to enum since generic enums are awful
+            int legacyBusType = 0;
+            int capabilities = 0;
+            UsbEnumator.GetDevicePropertyInt32(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_LEGACYBUSTYPE, out legacyBusType);
+            UsbEnumator.GetDevicePropertyInt32(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_CAPABILITIES, out capabilities);
+            DevProps.LegacyBusType = ( INTERFACE_TYPE ) legacyBusType;
+            DevProps.Capabilities = ( CM_DEVCAP ) capabilities;
+            UsbEnumator.GetDevicePropertyString(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_ENUMERATOR_NAME, out DevProps.Enumerator);
+            UsbEnumator.GetDevicePropertyInt32(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_ADDRESS, out DevProps.Address);
+            UsbEnumator.GetDevicePropertyString(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_BASE_CONTAINERID, out DevProps.ContainerId);
+            UsbEnumator.GetDevicePropertyString(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_LOCATION_INFORMATION, out DevProps.LocationInfo);
+            UsbEnumator.GetDevicePropertyString(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_LOCATION_PATHS, out DevProps.LocationPaths);
+            UsbEnumator.GetDevicePropertyString(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_FRIENDLYNAME, out DevProps.FriendlyName);
+            UsbEnumator.GetDevicePropertyString(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_MFG, out DevProps.Manufacturer);
+            // UsbEnumator.GetDeviceProperty(deviceInfo, deviceInfoData, DevRegProperty.SPDRP_LOCATION_PATHS, out DevProps.LocationPaths);
+
+            // Extract VEN, DEV, SUBSYS, REV from the device instance id
+            // NOTE: ven = USB VID ; dev = USB PID, SUBSYS and REV are 0 on USB
+            uint ven, dev, subsys, rev;
+            ven = dev = subsys = rev = 0;
+
+            if ( DevProps.Enumerator == "USB" ) {
+                Regex r = new Regex(@"^USB\\VID_(?<vid>[0-9a-fA-F]+)&PID_(?<pid>[0-9a-fA-F]+)", RegexOptions.None);
+
+                Match m = r.Match(DevProps.DeviceId);
+                if ( m.Success ) {
+                    ven = Convert.ToUInt32(m.Groups["vid"].Value, 16);
+                    dev = Convert.ToUInt32(m.Groups["pid"].Value, 16);
+                }
+            } else if ( DevProps.Enumerator == "PCI" ) {
+                Regex r = new Regex(@"^PCI\\VEN_(?<ven>[0-9a-fA-F]+)&DEV_(?<dev>[0-9a-fA-F]+)&SUBSYS_(?<subsys>[0-9a-fA-F]+)&REV_(?<rev>[0-9a-fA-F]+)", RegexOptions.None);
+
+                Match m = r.Match(DevProps.DeviceId);
+                if ( m.Success ) {
+                    ven = Convert.ToUInt32(m.Groups["ven"].Value, 16);
+                    dev = Convert.ToUInt32(m.Groups["dev"].Value, 16);
+                    subsys = Convert.ToUInt32(m.Groups["subsys"].Value, 16);
+                    rev = Convert.ToUInt32(m.Groups["rev"].Value, 16);
+                }
+            }
+
+            DevProps.VendorID = ven;
+            DevProps.ProductID = dev;
+            DevProps.SubSysID = subsys;
+            DevProps.Revision = ( USB_DEVICE_SPEED ) rev;
+        Done:
+
+            if ( deviceInfo != Kernel32.INVALID_HANDLE_VALUE ) {
+                SetupApi.SetupDiDestroyDeviceInfoList(deviceInfo);
+            }
+
+            return DevProps;
+        }
     }
 }

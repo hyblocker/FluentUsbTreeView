@@ -489,5 +489,14 @@ namespace FluentUsbTreeView.PInvoke {
 
         [DllImport("cfgmgr32.dll", SetLastError = true)]
         public static extern CR_RESULT CM_Get_DevNode_Status(out DN_Status status, out CM_PROB probNum, UInt32 devInst, int flags);
+
+        [DllImport("setupapi.dll", SetLastError = true)]
+        public static extern CR_RESULT CM_Get_Parent(out UInt32 pdnDevInst, UInt32 dnDevInst, int ulFlags);
+        
+        [DllImport("setupapi.dll", SetLastError = true)]
+        public static extern CR_RESULT CM_Get_Device_ID_Size(out uint pulLen, UInt32 dnDevInst, int flags = 0);
+
+        [DllImport("setupapi.dll", SetLastError = true)]
+        public static extern CR_RESULT CM_Get_Device_ID(uint dnDevInst, StringBuilder Buffer, int BufferLen, int ulFlags = 0);
     }
 }

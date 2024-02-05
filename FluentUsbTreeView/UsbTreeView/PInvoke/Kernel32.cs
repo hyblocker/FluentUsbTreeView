@@ -45,6 +45,7 @@ namespace FluentUsbTreeView.PInvoke {
     public static class Kernel32 {
 
         public const uint ERROR_SUCCESS = 0;
+        public const uint ERROR_INVALID_DATA = 13;
         public const uint ERROR_INSUFFICIENT_BUFFER = 122;
         public const uint ERROR_NO_MORE_ITEMS = 259;
         public const int GENERIC_WRITE = 0x40000000;
@@ -52,6 +53,10 @@ namespace FluentUsbTreeView.PInvoke {
         public const int OPEN_EXISTING = 3;
 
         public static readonly IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
+
+        [DllImport("Kernel32.dll")]
+        public static extern bool AttachConsole(int processId);
+
 
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern IntPtr CreateFile(
@@ -141,6 +146,37 @@ namespace FluentUsbTreeView.PInvoke {
             }
 
             return bResult;
+        }
+
+
+        private const int STD_OUTPUT_HANDLE = -11;
+        private const uint ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004;
+        private const uint DISABLE_NEWLINE_AUTO_RETURN = 0x0008;
+
+        [DllImport("kernel32.dll")]
+        private static extern bool GetConsoleMode(IntPtr hConsoleHandle, out uint lpMode);
+
+        [DllImport("kernel32.dll")]
+        private static extern bool SetConsoleMode(IntPtr hConsoleHandle, uint dwMode);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern IntPtr GetStdHandle(int nStdHandle);
+
+        [DllImport("kernel32.dll")]
+
+        private static extern uint GetLastError();
+        public static void EnableAnsiCmd() {
+            var iStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
+            if ( !GetConsoleMode(iStdOut, out uint outConsoleMode) ) {
+                Console.Error.WriteLine("Failed to get output console mode");
+                return;
+            }
+
+            outConsoleMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN;
+            if ( !SetConsoleMode(iStdOut, outConsoleMode) ) {
+                Console.Error.WriteLine($"Failed to set output console mode, error code: {GetLastError()}");
+                return;
+            }
         }
     }
 }

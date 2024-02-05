@@ -28,11 +28,10 @@ namespace FluentUsbTreeView.UsbTreeView {
         private const int NUM_STRING_DESC_TO_GET = 32;
         private const int MAX_DRIVER_KEY_NAME = 256;
 
-        public static uint TotalDevicesConnected;
-        public static uint TotalHostControllers;
-        public static uint TotalRootHubs;
-        public static uint TotalStandardHubs;
-        public static uint TotalPeripheralDevices;
+        private static uint s_totalHostControllers;
+        private static uint s_totalRootHubs;
+        private static uint s_totalStandardHubs;
+        private static uint s_totalPeripheralDevices;
 
         private static LinkedList<UsbHostControllerInfo> EnumeratedHCListHead = new LinkedList<UsbHostControllerInfo>();
 
@@ -59,7 +58,7 @@ namespace FluentUsbTreeView.UsbTreeView {
             "Reset"               // 10 - DeviceReset
         };
 
-        public static void EnumerateHostControllers(WpfTreeViewItem hTreeParent, ref uint DevicesConnected) {
+        public static void EnumerateHostControllers(WpfTreeViewItem hTreeParent, ref UsbTreeState TreeState) {
 
             IntPtr                              hHCDev = IntPtr.Zero;
             IntPtr                              deviceInfo = IntPtr.Zero;
@@ -72,11 +71,10 @@ namespace FluentUsbTreeView.UsbTreeView {
 
             EnumeratedHCListHead.Clear();
 
-            TotalDevicesConnected = 0;
-            TotalHostControllers = 0;
-            TotalRootHubs = 0;
-            TotalStandardHubs = 0;
-            TotalPeripheralDevices = 0;
+            s_totalHostControllers = 0;
+            s_totalRootHubs = 0;
+            s_totalStandardHubs = 0;
+            s_totalPeripheralDevices = 0;
             EnumerateAllDevices();
 
             // Iterate over host controllers using the new GUID based interface
@@ -133,7 +131,10 @@ namespace FluentUsbTreeView.UsbTreeView {
 
             SetupApi.SetupDiDestroyDeviceInfoList(deviceInfo);
 
-            DevicesConnected = TotalDevicesConnected;
+            TreeState.HostControllers       = s_totalHostControllers;
+            TreeState.RootHubs              = s_totalRootHubs;
+            TreeState.ExternalHubs          = s_totalStandardHubs;
+            TreeState.PeripheralDevices     = s_totalPeripheralDevices;
         }
 
         public static void EnumerateHostController(WpfTreeViewItem hTreeParent, IntPtr hHCDev, ref string devicePath, IntPtr deviceInfo, ref SP_DEVINFO_DATA deviceInfoData) {
@@ -177,6 +178,10 @@ namespace FluentUsbTreeView.UsbTreeView {
             // Obtain host controller device properties
             if ( driverKeyName.Length < MAX_DRIVER_KEY_NAME ) {
                 DevProps = DeviceNode.DriverNameToDeviceProperties(driverKeyName, driverKeyName.Length);
+                if (DevProps == null) {
+                    DeviceInfoNode devNode = UsbEnumator.FindMatchingDeviceNodeForDevicePath(devicePath, true);
+                    DevProps = DeviceNode.PollDeviceProperties(devNode.DeviceInfo, devNode.DeviceInfoData);
+                }
             }
 
             hcInfo.DevicePath = devicePath;
@@ -239,8 +244,10 @@ namespace FluentUsbTreeView.UsbTreeView {
                 return;
             }
 
+            hcInfo.SymbolicLink = GetRootHubName(hHCDev);
+
             // Track this host controller
-            TotalHostControllers++;
+            s_totalHostControllers++;
 
             // Add this host controller to the list of enumerated
             // host controllers.
@@ -248,7 +255,7 @@ namespace FluentUsbTreeView.UsbTreeView {
 
             // Get the name of the root hub for this host
             // controller and then enumerate the root hub.
-            rootHubName = GetRootHubName(hHCDev);
+            rootHubName = hcInfo.SymbolicLink;
 
             if ( rootHubName != null ) {
                 if ( rootHubName.Length < MAX_DRIVER_KEY_NAME ) {
@@ -318,12 +325,14 @@ namespace FluentUsbTreeView.UsbTreeView {
                 info.StringDescs            = StringDescs;
                 info.BosDesc                = BosDesc;
                 info.ConnectionInfoV2       = ConnectionInfoV2;
+                s_totalStandardHubs++;
             } else {
                 info.DeviceInfoType         = UsbDeviceInfoType.RootHub;
+                s_totalRootHubs++;
             }
 
             // Allocate a temp buffer for the full hub device name.
-            devicePath = "\\\\.\\" + HubName;
+            devicePath = "\\\\?\\" + HubName;
 
             // Try to hub the open device
             hHubDevice = Kernel32.CreateFile(devicePath, Kernel32.GENERIC_WRITE, Kernel32.FILE_SHARE_WRITE, 0, Kernel32.OPEN_EXISTING, 0, 0);
@@ -365,19 +374,24 @@ namespace FluentUsbTreeView.UsbTreeView {
             // Since this is a root hub the index is ALWAYS 1
             driverKeyName = GetDriverKeyName(hHubDevice, 1);
 
+            // @TODO: a
             if ( driverKeyName == null ) {
-                if (!DeviceNode.DevicePathToDrvierKeyName(devicePath, out driverKeyName)) {
-                    HandleNativeFailure();
+                DeviceInfoNode deviceNode = FindMatchingDeviceNodeForDevicePath(devicePath, true);
+                if ( deviceNode != null ) {
+                    driverKeyName = deviceNode.DeviceDriverName;
                 }
+                // if (!DeviceNode.DevicePathToDrvierKeyName(devicePath, out driverKeyName)) {
+                //     HandleNativeFailure();
+                // }
             }
-            if ( driverKeyName != null ) {
-                int cbDriverName = 0;
-
-                if ( driverKeyName.Length < MAX_DRIVER_KEY_NAME ) {
-                    DevProps = DeviceNode.DriverNameToDeviceProperties(driverKeyName, cbDriverName);
+            if ( DevProps == null ) {
+                DeviceInfoNode devNode = FindMatchingDeviceNodeForDevicePath(devicePath, true);
+                if (devNode != null ) {
+                    DevProps = DeviceNode.PollDeviceProperties(devNode.DeviceInfo, devNode.DeviceInfoData);
                 }
             }
             info.DevicePath = devicePath;
+            info.DriverKey = driverKeyName;
             info.UsbDeviceProperties = DevProps;
 
             // Build the leaf name from the port number and the device description
@@ -610,7 +624,7 @@ namespace FluentUsbTreeView.UsbTreeView {
                                               &connectionInfo, 
                                               nBytes, 
                                               &nBytes, 
-                                              IntPtr.Zero);
+                                              IntPtr.Zero); 
 
                     if (!success)
                     {
@@ -648,16 +662,12 @@ namespace FluentUsbTreeView.UsbTreeView {
                     // FREE(connectionInfo);
                 }
 
-                // Update the count of connected devices
-                //
+                // Update the count of connected devices, take only connected devices which aren't usb hubs
                 if (connectionInfoEx.ConnectionStatus == USB_CONNECTION_STATUS.DeviceConnected)
                 {
-                    TotalDevicesConnected++;
-                }
-
-                if (connectionInfoEx.DeviceIsHub != 0)
-                {
-                    TotalStandardHubs++;
+                    if ( connectionInfoEx.DeviceIsHub == 0 ) {
+                        s_totalPeripheralDevices++;
+                    }
                 }
 
                 // If there is a device connected, get the Device Description
@@ -996,6 +1006,45 @@ namespace FluentUsbTreeView.UsbTreeView {
             return dwError;
         }
 
+        private static string GetRootHubNameThroughTreeStructure(string parentDevicePath) {
+
+            string modifiedParentPath = parentDevicePath.Substring(4, parentDevicePath.IndexOf("#{") - 4).Replace('#', '\\').ToUpperInvariant();
+            uint size = 1024;
+            uint parentInst = uint.MaxValue;
+            StringBuilder deviceIdBuffer = new StringBuilder((int)size);
+
+            foreach ( DeviceInfoNode pEntry in s_HubList.ListHead ) {
+
+                parentInst = uint.MaxValue;
+                Cfgmgr32.CR_RESULT result = Cfgmgr32.CM_Get_Parent(out parentInst, pEntry.DeviceInfoData.DevInst, 0);
+                if ( result != Cfgmgr32.CR_RESULT.CR_SUCCESS ) {
+                    HandleNativeFailure();
+                    continue;
+                }
+
+                deviceIdBuffer.Clear();
+                size = 1024;
+
+                result = Cfgmgr32.CM_Get_Device_ID(parentInst, deviceIdBuffer, ( int ) size);
+                if ( result != Cfgmgr32.CR_RESULT.CR_SUCCESS ) {
+                    HandleNativeFailure();
+                    continue;
+                }
+                string deviceId = deviceIdBuffer.ToString();
+
+                if ( modifiedParentPath == deviceId.ToUpperInvariant() ) {
+                    string devName = pEntry.DeviceDetailData.DevicePath.Replace("\\\\?\\", "");
+                    int idx1 = devName.IndexOf('#');
+                    int idx2 = devName.IndexOf('#', idx1 + 1);
+                    string firstBit = devName.Substring(0, idx2).ToUpper();
+                    string rest = devName.Substring(idx2);
+                    return firstBit + rest;
+                }
+            }
+
+            return null;
+        }
+
         private static string GetRootHubName(IntPtr HostController) {
             bool                    success = false;
             int                     nBytes = 0;
@@ -1136,6 +1185,12 @@ namespace FluentUsbTreeView.UsbTreeView {
             bResult = SetupApi.SetupDiGetDeviceRegistryProperty(DeviceInfoSet, ref DeviceInfoData, Property, out _, IntPtr.Zero, 0, out requiredLength);
             lastError = Marshal.GetLastWin32Error();
 
+            // Property does not exist
+            if ( lastError == Kernel32.ERROR_INVALID_DATA ) {
+                ppBuffer = "";
+                return false;
+            }
+
             if ( ( requiredLength == 0 ) || ( bResult != false && lastError != Kernel32.ERROR_INSUFFICIENT_BUFFER ) ) {
                 ppBuffer = "";
                 HandleNativeFailure();
@@ -1233,7 +1288,7 @@ namespace FluentUsbTreeView.UsbTreeView {
                 DeviceList.ListHead.Clear();
             }
 
-            DeviceList.DeviceInfo = SetupApi.SetupDiGetClassDevs(ref Guid, null, IntPtr.Zero, ( DIGCF.DIGCF_PRESENT | DIGCF.DIGCF_DEVICEINTERFACE ));
+            DeviceList.DeviceInfo = SetupApi.SetupDiGetClassDevs(IntPtr.Zero, null, IntPtr.Zero, ( DIGCF.DIGCF_PRESENT | DIGCF.DIGCF_DEVICEINTERFACE | DIGCF.DIGCF_ALLCLASSES ));
 
             if ( DeviceList.DeviceInfo != Kernel32.INVALID_HANDLE_VALUE ) {
                 uint index;
@@ -1282,6 +1337,10 @@ namespace FluentUsbTreeView.UsbTreeView {
                         }
 
                         success = SetupApi.SetupDiEnumDeviceInterfaces(DeviceList.DeviceInfo, IntPtr.Zero, ref Guid, index - 1, ref pNode.DeviceInterfaceData);
+                        error = Marshal.GetLastWin32Error();
+                        if ( error == Kernel32.ERROR_NO_MORE_ITEMS ) {
+                            break;
+                        }
                         if ( !success ) {
                             HandleNativeFailure();
                             break;
@@ -2166,14 +2225,14 @@ namespace FluentUsbTreeView.UsbTreeView {
             return null;
         }
 
-        private static DeviceInfoNode FindMatchingDeviceNodeForDriverName( string DriverKeyName, bool IsHub ) {
+        private static DeviceInfoNode FindMatchingDeviceNodeForDriverName(string DriverKeyName, bool IsHub) {
             DeviceInfoNode pNode            = new DeviceInfoNode();
             DeviceGuidList pList            = null;
             // LinkedListNode<DeviceInfoNode>  pEntry = null;
 
             pList = IsHub ? s_HubList : s_DeviceList;
 
-            foreach (var pEntry in pList.ListHead ) {
+            foreach ( var pEntry in pList.ListHead ) {
                 if ( DriverKeyName == pNode.DeviceDriverName ) {
                     return pNode;
                 }
@@ -2191,6 +2250,22 @@ namespace FluentUsbTreeView.UsbTreeView {
             // 
             //     pEntry = pEntry->Flink;
             // }
+
+            return null;
+        }
+
+        private static DeviceInfoNode FindMatchingDeviceNodeForDevicePath(string DevicePath, bool IsHub) {
+            DeviceGuidList pList            = null;
+            // LinkedListNode<DeviceInfoNode>  pEntry = null;
+
+            pList = IsHub ? s_HubList : s_DeviceList;
+
+            foreach ( DeviceInfoNode pEntry in pList.ListHead ) {
+                if ( DevicePath.ToLowerInvariant() == pEntry.DeviceDetailData.DevicePath.ToLowerInvariant() ) {
+                    DeviceInfoNode targetNode = pEntry;
+                    return pEntry;
+                }
+            }
 
             return null;
         }

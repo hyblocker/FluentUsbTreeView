@@ -5,7 +5,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{7EBA0EBC-4C4B-45A8-9EB4-10CA66FD2FC6}</ProjectGuid>
-    <OutputType>WinExe</OutputType>
+    <OutputType>Exe</OutputType>
     <RootNamespace>FluentUsbTreeView</RootNamespace>
     <AssemblyName>FluentUsbTreeView</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
@@ -116,16 +116,21 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="MainWindow.xaml.cs">
+      <DependentUpon>MainWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="UIExtensions\RadioMenuItem.cs" />
     <Compile Include="UsbTreeView\DeviceNode.cs" />
     <Compile Include="UsbTreeView\PInvoke\Cfgmgr32.cs" />
+    <Compile Include="UsbTreeView\PInvoke\DeviceManaged.cs" />
     <Compile Include="UsbTreeView\PInvoke\Kernel32.cs" />
     <Compile Include="UsbTreeView\PInvoke\NativeUtils.cs" />
     <Compile Include="UsbTreeView\PInvoke\SetupApi.cs" />
     <Compile Include="UsbTreeView\PInvoke\UsbApi.cs" />
     <Compile Include="UsbTreeView\PInvoke\User32.cs" />
     <Compile Include="UsbTreeView\PInvoke\WinApiGuids.cs" />
+    <Compile Include="UsbTreeView\PInvoke\WindowsTools.cs" />
     <Compile Include="UsbTreeView\Settings.cs" />
     <Compile Include="UsbTreeView\Ui\DetailViewDataGenerator.cs" />
     <Compile Include="UsbTreeView\Ui\DeviceNameUtil.cs" />
@@ -138,18 +143,11 @@
     <Compile Include="Util\CoreExtensions.cs" />
     <Compile Include="Util\Logger.cs" />
     <Compile Include="Util\Util.cs" />
-    <Page Include="MainWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="MainWindow.xaml.cs">
-      <DependentUpon>MainWindow.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
+    <Compile Include="Util\Util.cs" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">
@@ -190,6 +188,12 @@
     <Resource Include="Assets\usb-ssusb-256.png" />
     <Resource Include="Assets\usb-malfunction-256.png" />
     <Resource Include="Assets\application-icon-256.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Include="MainWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
   </ItemGroup>
   <Target Name="EmbedReferencedAssemblies" AfterTargets="ResolveAssemblyReferences">
     <ItemGroup>

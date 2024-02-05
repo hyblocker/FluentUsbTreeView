@@ -39,6 +39,40 @@ namespace FluentUsbTreeView.PInvoke {
     }
 
     /// <summary>
+    /// An SP_DRVINFO_DATA structure contains information about a driver.
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct SP_DRVINFO_DATA_V1 {
+        public int cbSize;
+        public int DriverType;
+        private IntPtr Reserved;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
+        public string Description;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
+        public string MfgName;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
+        public string ProviderName;
+    }
+
+    /// <summary>
+    /// An SP_DRVINFO_DATA structure contains information about a driver.
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct SP_DRVINFO_DATA_V2 {
+        public int cbSize;
+        public int DriverType;
+        private IntPtr Reserved;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
+        public string Description;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
+        public string MfgName;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
+        public string ProviderName;
+        public System.Runtime.InteropServices.ComTypes.FILETIME DriverDate;
+        public long DriverVersion;
+    }
+
+    /// <summary>
     /// Flags controlling what is included in the device information set built by SetupDiGetClassDevs
     /// </summary>
     [Flags]
@@ -146,6 +180,13 @@ namespace FluentUsbTreeView.PInvoke {
             DIGCF Flags
         );
 
+        [DllImport("setupapi.dll", CharSet = CharSet.Auto)]
+        public static extern IntPtr SetupDiGetClassDevs(
+            IntPtr ClassGuid,
+            [MarshalAs(UnmanagedType.LPTStr)] string Enumerator,
+            IntPtr hwndParent,
+            DIGCF Flags
+        );
         [DllImport(@"setupapi.dll", CharSet = CharSet.Auto, SetLastError = true)]
         public static extern bool SetupDiGetDeviceInterfaceDetail(
            IntPtr hDevInfo,

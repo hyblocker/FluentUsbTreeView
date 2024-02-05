@@ -12,6 +12,13 @@ using static FluentUsbTreeView.PInvoke.UsbApi;
 
 namespace FluentUsbTreeView {
 
+    public struct UsbTreeState {
+        public uint HostControllers;
+        public uint RootHubs;
+        public uint ExternalHubs;
+        public uint PeripheralDevices;
+    }
+
     public class DeviceGuidList {
         public IntPtr                         DeviceInfo;
         public LinkedList<DeviceInfoNode>     ListHead;
@@ -112,6 +119,7 @@ namespace FluentUsbTreeView {
         public ushort                                   BusDevice;
         public ushort                                   BusFunction;
         public UsbApi.USB_CONTROLLER_INFO_0             ControllerInfo;
+        public string                                   SymbolicLink;
         public UsbApi.USB_BANDWIDTH_INFO                BandwidthInfo;
         public UsbDevicePnpStrings                      UsbDeviceProperties;
 

@@ -281,7 +281,7 @@ namespace FluentUsbTreeView.Ui {
 
         #endregion
 
-        public static string GetInfoStringForRootNode() {
+        public static string GetInfoStringForRootNode(UsbTreeState treeState) {
 
             StringBuilder contentString = new StringBuilder();
 
@@ -351,10 +351,10 @@ namespace FluentUsbTreeView.Ui {
 
             contentString.Append("\n");
 
-            // contentString.Append($"{PropertyTitle("USB Host Controllers")}: {friendlyName}\n");
-            // contentString.Append($"{PropertyTitle("USB Root Hubs")}: {friendlyName}\n");
-            // contentString.Append($"{PropertyTitle("USB Standard Hubs")}: {friendlyName}\n");
-            // contentString.Append($"{PropertyTitle("USB Peripheral Devices")}: {friendlyName}\n");
+            contentString.Append($"{PropertyTitle("USB Host Controllers")}: {treeState.HostControllers}\n");
+            contentString.Append($"{PropertyTitle("USB Root Hubs")}: {treeState.RootHubs}\n");
+            contentString.Append($"{PropertyTitle("USB Standard Hubs")}: {treeState.ExternalHubs}\n");
+            contentString.Append($"{PropertyTitle("USB Peripheral Devices")}: {treeState.PeripheralDevices}\n");
 
             contentString.Append("\n");
 
@@ -415,6 +415,8 @@ HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\USB\AutomaticSurpriseRemoval
 
             #region Device Information
 
+            // DeviceDesc
+
             contentString.Append("\t\t+++++++++++++++++ Device Information ++++++++++++++++++\n");
             contentString.Append($"{PropertyTitle("Friendly Name")}: {usbController.UsbDeviceProperties.FriendlyName}\n");
             contentString.Append($"{PropertyTitle("Device Description")}: {usbController.UsbDeviceProperties.DeviceDesc}\n");
@@ -463,7 +465,7 @@ HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\USB\AutomaticSurpriseRemoval
             contentString.Append($"{PropertyTitle(" Time Sync API")}: {WriteBool(usbController.ControllerInfo.HcFeatureFlags & UsbApi.USB_HC_FEATURE_TIME_SYNC_API)}\n");
 
             // @TODO: Implement
-            contentString.Append($"\n{PropertyTitle("Roothub Symbolic Link")}:{"USB#ROOT_HUB30#9&3849bda4&0&0#{f18a0e88-c30c-11d0-8815-00a0c906bed8}"}\n");
+            contentString.Append($"\n{PropertyTitle("Roothub Symbolic Link")}: {usbController.SymbolicLink}\n");
 
             #endregion
 
