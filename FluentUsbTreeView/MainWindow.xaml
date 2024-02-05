@@ -15,9 +15,12 @@
     WindowBackdropType="Mica"
     WindowCornerPreference="Round"
     WindowStartupLocation="CenterScreen"
+    UseLayoutRounding="True"
     Title="USB Tree View"
     Height="450"
-    Width="800">
+    Width="800"
+    Closed="MainWindow_Closed"
+    >
 
     <Grid>
         <Grid.RowDefinitions>
@@ -60,13 +63,13 @@
                     <ui:MenuItem x:Name="copyReportSelect" Header="Copy Report from selected _Item" />
                 </ui:MenuItem>
                 <ui:MenuItem x:Name="menuOptions" Header="_Options">
-                    <ui:MenuItem x:Name="autoRefresh" Header="_Auto Refresh" IsCheckable="True" />
-                    <ui:MenuItem x:Name="endpointDescriptors" Header="_Endpoint Descriptors" IsCheckable="True" />
+                    <ui:MenuItem x:Name="autoRefresh" Header="_Auto Refresh" IsCheckable="True" IsChecked="{Binding Path=Settings_AutoRefresh, Mode=TwoWay}" />
+                    <ui:MenuItem x:Name="endpointDescriptors" Header="_Endpoint Descriptors" IsCheckable="True" IsChecked="{Binding Path=Settings_EndpointDescriptors, Mode=TwoWay}"/>
                     <ui:MenuItem x:Name="readMsftStringDescriptor" Header="_Read Msft String Descriptor 0xEE" IsCheckable="True" />
-                    <ui:MenuItem x:Name="scanAllStringDescriptors" Header="_Scan all String Descriptors" IsCheckable="True" />
-                    <ui:MenuItem x:Name="descriptorHexDumps" Header="_Descriptor HexDumps" IsCheckable="True" />
-                    <ui:MenuItem x:Name="driveNumsInTree" Header="Drive N_umbers in Tree" IsCheckable="True" />
-                    <ui:MenuItem x:Name="endpointsInTree" Header="_Endpoints in Tree" IsCheckable="True" />
+                    <ui:MenuItem x:Name="scanAllStringDescriptors" Header="_Scan all String Descriptors" IsCheckable="True" IsChecked="{Binding Path=Settings_ScanAllStringDescriptors, Mode=TwoWay}"/>
+                    <ui:MenuItem x:Name="descriptorHexDumps" Header="_Descriptor HexDumps" IsCheckable="True" IsChecked="{Binding Path=Settings_DescriptorHexDumps, Mode=TwoWay}"/>
+                    <ui:MenuItem x:Name="driveNumsInTree" Header="Drive N_umbers in Tree" IsCheckable="True" IsChecked="{Binding Path=Settings_DriveNumbersInTree, Mode=TwoWay}"/>
+                    <ui:MenuItem x:Name="endpointsInTree" Header="_Endpoints in Tree" IsCheckable="True" IsChecked="{Binding Path=Settings_EndpointsInTree, Mode=TwoWay}"/>
                     <ui:MenuItem x:Name="portsInTreeRoot" Header="_Ports in Tree">
                         <ui:MenuItem x:Name="portsInTreeNumber" Header="Port _Number" IsCheckable="True" helpers:RadioMenuItem.GroupName="PortsInTree" />
                         <ui:MenuItem x:Name="portsInTreeChain" Header="Port _Chain" IsCheckable="True" helpers:RadioMenuItem.GroupName="PortsInTree" />
@@ -77,11 +80,11 @@
                         <ui:MenuItem x:Name="devNamesInTreeSmart" Header="_Smart Choice" IsCheckable="True" helpers:RadioMenuItem.GroupName="DevNamesInTree" />
                     </ui:MenuItem>
                     <Separator />
-                    <ui:MenuItem x:Name="expandEmptyPorts" Header="E_xpand for empty Ports" IsCheckable="True" />
-                    <ui:MenuItem x:Name="expandEmptyHubs" Header="E_xpand for empty Hubs" IsCheckable="True" />
-                    <ui:MenuItem x:Name="expandNewDevs" Header="Expand for _new Devices" IsCheckable="True" />
-                    <ui:MenuItem x:Name="jumpNewDevs" Header="_Jump to new Devices" IsCheckable="True" />
-                    <ui:MenuItem x:Name="jumpRemovedDevs" Header="Jump to _removed Devices" IsCheckable="True" />
+                    <ui:MenuItem x:Name="expandEmptyPorts" Header="E_xpand for empty Ports" IsCheckable="True" IsChecked="{Binding Path=Settings_ExpandForEmptyPorts, Mode=TwoWay}"  />
+                    <ui:MenuItem x:Name="expandEmptyHubs" Header="E_xpand for empty Hubs" IsCheckable="True"  IsChecked="{Binding Path=Settings_ExpandForEmptyHubs, Mode=TwoWay}" />
+                    <ui:MenuItem x:Name="expandNewDevs" Header="Expand for _new Devices" IsCheckable="True" IsChecked="{Binding Path=Settings_ExpandForNewDevices, Mode=TwoWay}"  />
+                    <ui:MenuItem x:Name="jumpNewDevs" Header="_Jump to new Devices" IsCheckable="True" IsChecked="{Binding Path=Settings_JumpToNewDevices, Mode=TwoWay}"  />
+                    <ui:MenuItem x:Name="jumpRemovedDevs" Header="Jump to _removed Devices" IsCheckable="True"  IsChecked="{Binding Path=Settings_JumpToRemovedDevices, Mode=TwoWay}" />
                     <Separator />
                     <ui:MenuItem x:Name="font" Header="_Font..." />
                     <ui:MenuItem x:Name="bgColour" Header="_Background Colour..." />
@@ -115,7 +118,7 @@
             </Grid.ColumnDefinitions>
 
             <Grid Grid.Column="0">
-                <TreeView x:Name="usbTreeList">
+                <TreeView x:Name="usbTreeList" Focusable="False">
                 </TreeView>
             </Grid>
             <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Background="Transparent" />
@@ -130,7 +133,7 @@
 
         <StatusBar Grid.Row="3">
             <StatusBarItem>
-                <TextBlock Name="statusUsbStatus" Text="Host Controllers: 6    Root Hubs: 6    Standard Hubs: 7    Peripheral Devices: 19" />
+                <TextBlock x:Name="statusbarUsbStatus" Text="Host Controllers: 6    Root Hubs: 6    Standard Hubs: 7    Peripheral Devices: 19" />
             </StatusBarItem>
         </StatusBar>
 
@@ -144,4 +147,21 @@
             </ui:TitleBar.Icon>
         </ui:TitleBar>
     </Grid>
+    
+    <Window.Resources>
+        <ContextMenu x:Key="devContextMenu">
+            <MenuItem x:Name="contextMenu_safelyRemove" Header="Safely remove" Click="contextMenu_safelyRemove_Click" />
+            <MenuItem x:Name="contextMenu_restartDevice" Header="Restart device" Click="contextMenu_restartDevice_Click" />
+            <Separator />
+            <MenuItem x:Name="contextMenu_restartPort" Header="Restart port" Click="contextMenu_restartPort_Click" />
+            <Separator />
+            <MenuItem x:Name="contextMenu_copyTreeRoot" Header="Copy tree from here" />
+            <MenuItem x:Name="contextMenu_copyReportRoot" Header="Copy report from here" />
+            <MenuItem x:Name="contextMenu_copyOtherRoot" Header="Copy..." />
+            <Separator />
+            <MenuItem x:Name="contextMenu_regedit" Header="Regedit..." Click="contextMenu_regedit_Click" />
+            <Separator />
+            <MenuItem x:Name="contextMenu_devprops" Header="Device properties" Click="contextMenu_devprops_Click" />
+        </ContextMenu>
+    </Window.Resources>
 </ui:FluentWindow>

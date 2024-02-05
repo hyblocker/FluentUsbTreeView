@@ -29,6 +29,7 @@ namespace FluentUsbTreeView.Ui {
         }
 
         public static string GetFriendlyUsbHubName(UsbHubInfo usbHubInfo) {
+            // @TODO: Improve lol
             return usbHubInfo.UsbDeviceProperties.DeviceDesc;
             return GetFriendlyName(usbHubInfo.UsbDeviceProperties.FriendlyName, usbHubInfo.UsbDeviceProperties.Manufacturer, usbHubInfo.UsbDeviceProperties.DeviceDesc);
         }

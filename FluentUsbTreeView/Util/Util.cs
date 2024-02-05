@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Threading;
 
 namespace FluentUsbTreeView {
@@ -16,7 +17,7 @@ namespace FluentUsbTreeView {
 
         public static void Quit() {
             Task.Run(() => {
-
+                Thread.Sleep(10);
                 Application.Current.Dispatcher.InvokeShutdown();
                 // Wait a few 250ms first, otherwise the window will hang
                 Thread.Sleep(250);
@@ -63,6 +64,37 @@ namespace FluentUsbTreeView {
             } catch {
                 return false;
             }
+        }
+
+        // https://stackoverflow.com/a/53202179
+        public static T FindAncestor<T>(DependencyObject obj) where T : DependencyObject {
+            if ( obj != null ) {
+                var dependObj = obj;
+                do {
+                    dependObj = GetParent(dependObj);
+                    if ( dependObj is T )
+                        return dependObj as T;
+                }
+                while ( dependObj != null );
+            }
+
+            return null;
+        }
+
+        // https://stackoverflow.com/a/53202179
+        public static DependencyObject GetParent(DependencyObject obj) {
+            if ( obj == null )
+                return null;
+            if ( obj is ContentElement ) {
+                var parent = ContentOperations.GetParent(obj as ContentElement);
+                if ( parent != null )
+                    return parent;
+                if ( obj is FrameworkContentElement )
+                    return ( obj as FrameworkContentElement ).Parent;
+                return null;
+            }
+
+            return VisualTreeHelper.GetParent(obj);
         }
     }
 }
