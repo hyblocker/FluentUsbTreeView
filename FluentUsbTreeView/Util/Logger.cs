@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -102,6 +103,7 @@ namespace FluentUsbTreeView {
         private static void LogInternal(string message) {
             Console.ResetColor();
             Console.WriteLine(message);
+            Debug.WriteLine(message);
             if ( LogFilePath == null ) {
                 s_logLines.Add((ConsoleColor.White, message));
                 return;
@@ -118,6 +120,7 @@ namespace FluentUsbTreeView {
         private static void LogInternal(string message, ConsoleColor color) {
             Console.ForegroundColor = color;
             Console.WriteLine(message);
+            Debug.WriteLine(message);
             if ( LogFilePath == null ) {
                 s_logLines.Add((color, message));
                 return;
