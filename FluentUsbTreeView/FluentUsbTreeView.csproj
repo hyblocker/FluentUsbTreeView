@@ -121,9 +121,11 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="UIExtensions\RadioMenuItem.cs" />
+    <Compile Include="UIExtensions\RadioMenuItem.cs" />
     <Compile Include="UsbTreeView\DeviceNode.cs" />
-    <Compile Include="UsbTreeView\PInvoke\Cfgmgr32.cs" />
+    <Compile Include="UsbTreeView\PInvoke\CfgMgr32.cs" />
     <Compile Include="UsbTreeView\PInvoke\DeviceManaged.cs" />
+    <Compile Include="UsbTreeView\PInvoke\Devpkey.cs" />
     <Compile Include="UsbTreeView\PInvoke\Kernel32.cs" />
     <Compile Include="UsbTreeView\PInvoke\NativeUtils.cs" />
     <Compile Include="UsbTreeView\PInvoke\SetupApi.cs" />
@@ -147,7 +149,6 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Util\Util.cs" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">

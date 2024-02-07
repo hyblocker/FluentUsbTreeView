@@ -16,5 +16,24 @@ namespace FluentUsbTreeView.PInvoke {
             IntPtr windowHandle = new WindowInteropHelper(MainWindow.Instance).Handle;
             DeviceProperties_RunDLL(windowHandle, IntPtr.Zero, $"/DeviceID {deviceId}", 0);
         }
+
+
+        [StructLayout(LayoutKind.Explicit)]
+        public struct LargeIntegerStruct {
+            [FieldOffset(0)]
+            public uint LowPart;
+            [FieldOffset(4)]
+            public int HighPart;
+            [FieldOffset(0)]
+            public long QuadPart;
+
+            internal DateTime ToDateTime() {
+                try {
+                    return DateTime.FromFileTime(QuadPart);
+                } catch ( ArgumentException ) {
+                    return DateTime.MinValue;
+                }
+            }
+        }
     }
 }

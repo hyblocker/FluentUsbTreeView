@@ -15,9 +15,11 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using Wpf.Ui.Controls;
+using static FluentUsbTreeView.PInvoke.CfgMgr32;
 using static FluentUsbTreeView.PInvoke.UsbApi;
 using static System.Net.Mime.MediaTypeNames;
 using WpfTreeViewItem = System.Windows.Controls.TreeViewItem;
+using FILETIME = System.Runtime.InteropServices.ComTypes.FILETIME;
 
 namespace FluentUsbTreeView.UsbTreeView {
     // Basically a C# port of enum.c from the Microsoft usbview with a few alterations since C# allows me to write cleaner code in some aspects
@@ -165,7 +167,7 @@ namespace FluentUsbTreeView.UsbTreeView {
             // Don't enumerate this host controller again if it already
             // on the list of enumerated host controllers.
             foreach ( UsbHostControllerInfo hcInfoInList in EnumeratedHCListHead ) {
-                if ( driverKeyName == hcInfoInList.DriverKey ) {
+                if ( driverKeyName == hcInfoInList.UsbDeviceProperties.DriverKey ) {
                     // Already on the list, exit
                     return;
                 }
@@ -184,9 +186,9 @@ namespace FluentUsbTreeView.UsbTreeView {
                 }
             }
 
-            hcInfo.DevicePath = devicePath;
-            hcInfo.DriverKey = driverKeyName;
             hcInfo.UsbDeviceProperties = DevProps;
+            hcInfo.UsbDeviceProperties.DevicePath = devicePath;
+            hcInfo.UsbDeviceProperties.DriverKey = driverKeyName;
 
             // Get the USB Host Controller power map
             dwSuccess = GetHostControllerPowerMap(hHCDev, ref hcInfo);
@@ -390,9 +392,9 @@ namespace FluentUsbTreeView.UsbTreeView {
                     DevProps = DeviceNode.PollDeviceProperties(devNode.DeviceInfo, devNode.DeviceInfoData);
                 }
             }
-            info.DevicePath = devicePath;
-            info.DriverKey = driverKeyName;
             info.UsbDeviceProperties = DevProps;
+            info.UsbDeviceProperties.DevicePath = devicePath;
+            info.UsbDeviceProperties.DriverKey = driverKeyName;
 
             // Build the leaf name from the port number and the device description
             if ( !isRootHub ) {
@@ -796,8 +798,6 @@ namespace FluentUsbTreeView.UsbTreeView {
                     // }
 
                     info.DeviceInfoType = UsbDeviceInfoType.DeviceInfo;
-                    info.DriverKey = driverKeyName;
-                    info.DevicePath = devicePath;
                     info.ConnectionInfo = connectionInfoEx;
                     info.PortConnectorProps = pPortConnectorProps;
                     info.ConfigDesc = configDesc;
@@ -805,6 +805,10 @@ namespace FluentUsbTreeView.UsbTreeView {
                     info.BosDesc = bosDesc;
                     info.ConnectionInfoV2 = usbNodeInfoExV2;
                     info.UsbDeviceProperties = DevProps;
+                    if ( info.UsbDeviceProperties != null ) {
+                        info.UsbDeviceProperties.DriverKey = driverKeyName;
+                        info.UsbDeviceProperties.DevicePath = devicePath;
+                    }
                     info.DeviceInfoNode = pNode;
 
                     leafName = $"[Port{index}] {ConnectionStatuses[(int) info.ConnectionInfo.ConnectionStatus]}";
@@ -1016,8 +1020,8 @@ namespace FluentUsbTreeView.UsbTreeView {
             foreach ( DeviceInfoNode pEntry in s_HubList.ListHead ) {
 
                 parentInst = uint.MaxValue;
-                Cfgmgr32.CR_RESULT result = Cfgmgr32.CM_Get_Parent(out parentInst, pEntry.DeviceInfoData.DevInst, 0);
-                if ( result != Cfgmgr32.CR_RESULT.CR_SUCCESS ) {
+                CfgMgr32.CR_RESULT result = CfgMgr32.CM_Get_Parent(out parentInst, pEntry.DeviceInfoData.DevInst, 0);
+                if ( result != CfgMgr32.CR_RESULT.CR_SUCCESS ) {
                     HandleNativeFailure();
                     continue;
                 }
@@ -1025,8 +1029,8 @@ namespace FluentUsbTreeView.UsbTreeView {
                 deviceIdBuffer.Clear();
                 size = 1024;
 
-                result = Cfgmgr32.CM_Get_Device_ID(parentInst, deviceIdBuffer, ( int ) size);
-                if ( result != Cfgmgr32.CR_RESULT.CR_SUCCESS ) {
+                result = CfgMgr32.CM_Get_Device_ID(parentInst, deviceIdBuffer, ( int ) size);
+                if ( result != CfgMgr32.CR_RESULT.CR_SUCCESS ) {
                     HandleNativeFailure();
                     continue;
                 }
@@ -1141,6 +1145,8 @@ namespace FluentUsbTreeView.UsbTreeView {
             int                     nBytes = 0;
             int                     nBytesReturned = 0;
 
+            Logger.Info("Getting driver keyname...");
+
             USB_NODE_CONNECTION_DRIVERKEY_NAME driverKeyName = new USB_NODE_CONNECTION_DRIVERKEY_NAME() {
                 ConnectionIndex = connectionIndex,
             };
@@ -1152,6 +1158,7 @@ namespace FluentUsbTreeView.UsbTreeView {
             
             // handle failure
             if ( !success ) {
+                Logger.Fatal($"HCD: {HCD}, connectionIndex: {connectionIndex}");
                 HandleNativeFailure();
                 return null;
             }
@@ -1167,6 +1174,7 @@ namespace FluentUsbTreeView.UsbTreeView {
 
             // handle failure
             if ( !success ) {
+                Logger.Fatal($"HCD: {HCD}, connectionIndex: {connectionIndex}");
                 HandleNativeFailure();
                 return null;
             }
@@ -1177,10 +1185,12 @@ namespace FluentUsbTreeView.UsbTreeView {
         }
 
         // specialisation for strings
+        /*
         public static bool GetDevicePropertyString(IntPtr DeviceInfoSet, SP_DEVINFO_DATA DeviceInfoData, DevRegProperty Property, out string ppBuffer) {
             bool bResult;
             uint requiredLength = 0;
             int lastError;
+
 
             bResult = SetupApi.SetupDiGetDeviceRegistryProperty(DeviceInfoSet, ref DeviceInfoData, Property, out _, IntPtr.Zero, 0, out requiredLength);
             lastError = Marshal.GetLastWin32Error();
@@ -1211,16 +1221,128 @@ namespace FluentUsbTreeView.UsbTreeView {
 
             return true;
         }
-
-        public static bool GetDevicePropertyStruct<T>(IntPtr DeviceInfoSet, SP_DEVINFO_DATA DeviceInfoData, DevRegProperty Property, out T ppBuffer) where T : struct {
-            bool bResult;
+        */
+        public static bool GetDevicePropertyString(uint devInst, DEVPROPKEY Property, out string ppBuffer) {
+            CR_RESULT bResult;
             uint requiredLength = 0;
+            DEVPROPTYPE PropertyType;
             int lastError;
 
-            bResult = SetupApi.SetupDiGetDeviceRegistryProperty(DeviceInfoSet, ref DeviceInfoData, Property, out _, IntPtr.Zero, 0, out requiredLength);
+            bResult = CfgMgr32.CM_Get_DevNode_Property(devInst, Property, out PropertyType, IntPtr.Zero, ref requiredLength);
             lastError = Marshal.GetLastWin32Error();
 
-            if ( ( requiredLength == 0 ) || ( bResult != false && lastError != Kernel32.ERROR_INSUFFICIENT_BUFFER ) ) {
+            // Property does not exist
+            if ( bResult == CR_RESULT.CR_NO_SUCH_VALUE || lastError == Kernel32.ERROR_INVALID_DATA ) {
+                ppBuffer = "";
+                return false;
+            }
+
+            if ( ( requiredLength == 0 ) || ( bResult != CR_RESULT.CR_BUFFER_SMALL && lastError != Kernel32.ERROR_INSUFFICIENT_BUFFER ) ) {
+                ppBuffer = "";
+                HandleNativeFailure();
+                return false;
+            }
+
+
+            StringBuilder ppBufferStringBuilder = new StringBuilder( ( int ) requiredLength );
+            bResult = CfgMgr32.CM_Get_DevNode_Property(devInst, Property, out PropertyType, ppBufferStringBuilder, ref requiredLength);
+
+            if ( bResult != CR_RESULT.CR_SUCCESS ) {
+                ppBuffer = "";
+                HandleNativeFailure();
+                return false;
+            }
+
+            ppBuffer = ppBufferStringBuilder.ToString();
+
+            return true;
+        }
+        public static bool GetDevicePropertyFileTime(uint devInst, DEVPROPKEY Property, out FILETIME ppBuffer) {
+            CR_RESULT bResult;
+            uint requiredLength = 0;
+            DEVPROPTYPE PropertyType;
+            int lastError;
+
+            bResult = CfgMgr32.CM_Get_DevNode_Property(devInst, Property, out PropertyType, IntPtr.Zero, ref requiredLength);
+            lastError = Marshal.GetLastWin32Error();
+
+            // Property does not exist
+            if ( bResult == CR_RESULT.CR_NO_SUCH_VALUE || lastError == Kernel32.ERROR_INVALID_DATA ) {
+                ppBuffer = new FILETIME();
+                return false;
+            }
+
+            if ( ( requiredLength == 0 ) || ( bResult != CR_RESULT.CR_BUFFER_SMALL && lastError != Kernel32.ERROR_INSUFFICIENT_BUFFER ) ) {
+                ppBuffer = new FILETIME();
+                HandleNativeFailure();
+                return false;
+            }
+
+            int size = Marshal.SizeOf(typeof(FILETIME));
+            IntPtr ptr = IntPtr.Zero;
+            try {
+                ptr = Marshal.AllocHGlobal(size);
+                bResult = CfgMgr32.CM_Get_DevNode_Property(devInst, Property, out PropertyType, ptr, ref requiredLength);
+                ppBuffer = ( FILETIME ) Marshal.PtrToStructure(ptr, typeof(FILETIME));
+            } finally {
+                Marshal.FreeHGlobal(ptr);
+            }
+
+            if ( bResult != CR_RESULT.CR_SUCCESS ) {
+                ppBuffer = new FILETIME();
+                HandleNativeFailure();
+                return false;
+            }
+
+            return true;
+        }
+        public static bool GetDevicePropertyString(uint devInst, CM_DRP Property, out string ppBuffer) {
+            CR_RESULT bResult;
+            uint requiredLength = 0;
+            REG_VALUE_TYPE pulRegDataType;
+            int lastError;
+
+            //                 CM_Get_DevNode_Registry_Property(uint dnDevInst, CM_DRP ulProperty, out REG_VALUE_TYPE pulRegDataType, [Out, Optional] IntPtr Buffer, ref uint pulLength, uint ulFlags = 0);
+            bResult = CfgMgr32.CM_Get_DevNode_Registry_Property(devInst, Property, out pulRegDataType, IntPtr.Zero, ref requiredLength);
+            lastError = Marshal.GetLastWin32Error();
+
+            // Property does not exist
+            if ( bResult == CR_RESULT.CR_NO_SUCH_VALUE || lastError == Kernel32.ERROR_INVALID_DATA ) {
+                ppBuffer = "";
+                return false;
+            }
+
+            if ( ( requiredLength == 0 ) || ( bResult != CR_RESULT.CR_BUFFER_SMALL && lastError != Kernel32.ERROR_INSUFFICIENT_BUFFER ) ) {
+                ppBuffer = "";
+                HandleNativeFailure();
+                return false;
+            }
+
+
+            StringBuilder ppBufferStringBuilder = new StringBuilder( ( int ) requiredLength );
+            bResult = CfgMgr32.CM_Get_DevNode_Registry_Property(devInst, Property, out pulRegDataType, ppBufferStringBuilder, ref requiredLength);
+
+            if ( bResult != CR_RESULT.CR_SUCCESS ) {
+                ppBuffer = "";
+                HandleNativeFailure();
+                return false;
+            }
+
+            ppBuffer = ppBufferStringBuilder.ToString();
+
+            return true;
+        }
+
+        public static bool GetDevicePropertyStruct<T>(uint devInst, CM_DRP Property, out T ppBuffer) where T : struct {
+            CR_RESULT bResult;
+            uint requiredLength = 0;
+            REG_VALUE_TYPE pulRegDataType;
+            int lastError;
+
+            bResult = CfgMgr32.CM_Get_DevNode_Registry_Property(devInst, Property, out pulRegDataType, IntPtr.Zero, ref requiredLength);
+            lastError = Marshal.GetLastWin32Error();
+
+            if ( ( requiredLength == 0 ) || ( bResult != CR_RESULT.CR_BUFFER_SMALL && lastError != Kernel32.ERROR_INSUFFICIENT_BUFFER ) ) {
                 ppBuffer = new T();
                 HandleNativeFailure();
                 return false;
@@ -1230,7 +1352,7 @@ namespace FluentUsbTreeView.UsbTreeView {
 
             // memory safety yippee
             byte[] dataBuffer = new byte[Marshal.SizeOf(typeof(T))];
-            bResult = SetupApi.SetupDiGetDeviceRegistryProperty(DeviceInfoSet, ref DeviceInfoData, Property, out _, dataBuffer, requiredLength, out requiredLength);
+            bResult = CfgMgr32.CM_Get_DevNode_Registry_Property(devInst, Property, out pulRegDataType, dataBuffer, ref requiredLength);
             int size = Marshal.SizeOf(typeof(T));
             IntPtr ptr = IntPtr.Zero;
             try {
@@ -1241,7 +1363,7 @@ namespace FluentUsbTreeView.UsbTreeView {
                 Marshal.FreeHGlobal(ptr);
             }
 
-            if ( bResult == false ) {
+            if ( bResult != CR_RESULT.CR_SUCCESS ) {
                 ppBuffer = new T();
                 HandleNativeFailure();
                 return false;
@@ -1250,15 +1372,16 @@ namespace FluentUsbTreeView.UsbTreeView {
             return true;
         }
 
-        public static bool GetDevicePropertyInt32(IntPtr DeviceInfoSet, SP_DEVINFO_DATA DeviceInfoData, DevRegProperty Property, out int ppBuffer) {
-            bool bResult;
+        public static bool GetDevicePropertyInt32(uint devInst, CM_DRP Property, out int ppBuffer) {
+            CR_RESULT bResult;
             uint requiredLength = 0;
+            REG_VALUE_TYPE pulRegDataType;
             int lastError;
 
-            bResult = SetupApi.SetupDiGetDeviceRegistryProperty(DeviceInfoSet, ref DeviceInfoData, Property, out _, IntPtr.Zero, 0, out requiredLength);
+            bResult = CfgMgr32.CM_Get_DevNode_Registry_Property(devInst, Property, out pulRegDataType, IntPtr.Zero, ref requiredLength);
             lastError = Marshal.GetLastWin32Error();
 
-            if ( ( requiredLength == 0 ) || ( bResult != false && lastError != Kernel32.ERROR_INSUFFICIENT_BUFFER ) ) {
+            if ( ( requiredLength == 0 ) || ( bResult != CR_RESULT.CR_BUFFER_SMALL && lastError != Kernel32.ERROR_INSUFFICIENT_BUFFER ) ) {
                 ppBuffer = -1;
                 HandleNativeFailure();
                 return false;
@@ -1267,9 +1390,13 @@ namespace FluentUsbTreeView.UsbTreeView {
             ppBuffer = 0;
 
             // work around for enums
-            bResult = SetupApi.SetupDiGetDeviceRegistryProperty(DeviceInfoSet, ref DeviceInfoData, Property, out _, out ppBuffer, requiredLength, out requiredLength);
+            // bResult = CfgMgr32.CM_Get_DevNode_Registry_Property(devInst, Property, out pulRegDataType, ppBuffer, ref requiredLength);
+            byte[] dataBuffer = new byte[requiredLength];
+            bResult = CfgMgr32.CM_Get_DevNode_Registry_Property(devInst, Property, out pulRegDataType, dataBuffer, ref requiredLength);
 
-            if ( bResult == false ) {
+            ppBuffer = BitConverter.ToInt32(dataBuffer, 0);
+
+            if ( bResult != CR_RESULT.CR_SUCCESS ) {
                 ppBuffer = -1;
                 HandleNativeFailure();
                 return false;
@@ -1288,7 +1415,7 @@ namespace FluentUsbTreeView.UsbTreeView {
                 DeviceList.ListHead.Clear();
             }
 
-            DeviceList.DeviceInfo = SetupApi.SetupDiGetClassDevs(IntPtr.Zero, null, IntPtr.Zero, ( DIGCF.DIGCF_PRESENT | DIGCF.DIGCF_DEVICEINTERFACE | DIGCF.DIGCF_ALLCLASSES ));
+            DeviceList.DeviceInfo = SetupApi.SetupDiGetClassDevs(ref Guid, null, IntPtr.Zero, ( DIGCF.DIGCF_PRESENT | DIGCF.DIGCF_DEVICEINTERFACE ));
 
             if ( DeviceList.DeviceInfo != Kernel32.INVALID_HANDLE_VALUE ) {
                 uint index;
@@ -1324,13 +1451,13 @@ namespace FluentUsbTreeView.UsbTreeView {
                         bool   bResult;
                         uint  requiredLength = 0;
 
-                        bResult = GetDevicePropertyString(DeviceList.DeviceInfo, pNode.DeviceInfoData, DevRegProperty.SPDRP_DEVICEDESC, out pNode.DeviceDescName);
+                        bResult = GetDevicePropertyString(pNode.DeviceInfoData.DevInst, CM_DRP.CM_DRP_DEVICEDESC, out pNode.DeviceDescName);
                         if ( bResult == false ) {
                             HandleNativeFailure();
                             break;
                         }
 
-                        bResult = GetDevicePropertyString(DeviceList.DeviceInfo, pNode.DeviceInfoData, DevRegProperty.SPDRP_DRIVER, out pNode.DeviceDriverName);
+                        bResult = GetDevicePropertyString(pNode.DeviceInfoData.DevInst, CM_DRP.CM_DRP_DRIVER, out pNode.DeviceDriverName);
                         if ( bResult == false ) {
                             HandleNativeFailure();
                             break;

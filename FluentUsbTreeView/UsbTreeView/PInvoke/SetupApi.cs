@@ -27,17 +27,6 @@ namespace FluentUsbTreeView.PInvoke {
         public string DevicePath;
     }
 
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-    public struct DEVPROPKEY {
-        public Guid fmtid;
-        public uint pid;
-
-        public DEVPROPKEY(uint a, ushort b, ushort c, byte d, byte e, byte f, byte g, byte h, byte i, byte j, byte k, uint pid) {
-            this.pid = pid;
-            this.fmtid = new Guid(a, b, c, d, e, f, g, h, i, j, k);
-        }
-    }
-
     /// <summary>
     /// An SP_DRVINFO_DATA structure contains information about a driver.
     /// </summary>
@@ -150,24 +139,9 @@ namespace FluentUsbTreeView.PInvoke {
         MaximumInterfaceType
     }
 
-    [Flags]
-    public enum CM_DEVCAP : int {
-        CM_DEVCAP_LOCKSUPPORTED     = (0x00000001),
-        CM_DEVCAP_EJECTSUPPORTED    = (0x00000002),
-        CM_DEVCAP_REMOVABLE         = (0x00000004),
-        CM_DEVCAP_DOCKDEVICE        = (0x00000008),
-        CM_DEVCAP_UNIQUEID          = (0x00000010),
-        CM_DEVCAP_SILENTINSTALL     = (0x00000020),
-        CM_DEVCAP_RAWDEVICEOK       = (0x00000040),
-        CM_DEVCAP_SURPRISEREMOVALOK = (0x00000080),
-        CM_DEVCAP_HARDWAREDISABLED  = (0x00000100),
-        CM_DEVCAP_NONDYNAMIC        = (0x00000200),
-        CM_DEVCAP_SECUREDEVICE      = (0x00000400),
-    }
-
+    // public static class SetupApi {
     public static class SetupApi {
 
-        public static readonly DEVPROPKEY DEVPKEY_Device_DriverProblemDesc = new DEVPROPKEY(0x540b947e, 0x8b40, 0x45bc, 0xa8, 0xa2, 0x6a, 0x0b, 0x89, 0x4c, 0xbd, 0xa2, 11);
 
         [DllImport("setupapi.dll", SetLastError = true)]
         public static extern bool SetupDiEnumDeviceInfo(IntPtr DeviceInfoSet, ulong MemberIndex, ref SP_DEVINFO_DATA DeviceInfoData);
@@ -250,7 +224,7 @@ namespace FluentUsbTreeView.PInvoke {
             out UInt32 requiredSize
         );
         [DllImport("setupapi.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        public static extern bool SetupDiGetDeviceRegistryProperty(
+        private static extern bool SetupDiGetDeviceRegistryProperty(
             IntPtr deviceInfoSet,
             ref SP_DEVINFO_DATA deviceInfoData,
             DevRegProperty property,
@@ -260,7 +234,7 @@ namespace FluentUsbTreeView.PInvoke {
             out UInt32 requiredSize
         );
         [DllImport("setupapi.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        public static extern bool SetupDiGetDeviceRegistryProperty(
+        private static extern bool SetupDiGetDeviceRegistryProperty(
             IntPtr deviceInfoSet,
             ref SP_DEVINFO_DATA deviceInfoData,
             DevRegProperty property,
@@ -270,7 +244,7 @@ namespace FluentUsbTreeView.PInvoke {
             out UInt32 requiredSize
         );
         [DllImport("setupapi.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        public static extern bool SetupDiGetDeviceRegistryProperty(
+        private static extern bool SetupDiGetDeviceRegistryProperty(
             IntPtr deviceInfoSet,
             ref SP_DEVINFO_DATA deviceInfoData,
             DEVPROPKEY property,
@@ -280,7 +254,7 @@ namespace FluentUsbTreeView.PInvoke {
             out UInt32 requiredSize
         );
         [DllImport("setupapi.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        public static extern bool SetupDiGetDeviceRegistryProperty(
+        private static extern bool SetupDiGetDeviceRegistryProperty(
             IntPtr deviceInfoSet,
             ref SP_DEVINFO_DATA deviceInfoData,
             DEVPROPKEY property,
@@ -290,7 +264,7 @@ namespace FluentUsbTreeView.PInvoke {
             out UInt32 requiredSize
         );
         [DllImport("setupapi.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        public static extern bool SetupDiGetDeviceRegistryProperty(
+        private static extern bool SetupDiGetDeviceRegistryProperty(
             IntPtr deviceInfoSet,
             ref SP_DEVINFO_DATA deviceInfoData,
             DevRegProperty property,
@@ -301,7 +275,7 @@ namespace FluentUsbTreeView.PInvoke {
         );
 
         [DllImport("setupapi.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        public static extern bool SetupDiGetDeviceInstanceId(
+        private static extern bool SetupDiGetDeviceInstanceId(
             IntPtr DeviceInfoSet,
             ref SP_DEVINFO_DATA DeviceInfoData,
             StringBuilder DeviceInstanceId,
