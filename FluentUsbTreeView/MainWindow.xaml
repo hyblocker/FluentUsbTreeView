@@ -42,13 +42,16 @@
                         </ui:MenuItem.Icon>
                     </ui:MenuItem>
                     <Separator />
-                    <ui:MenuItem x:Name="openXmlReport" Header="Open XML Report" />
-                    <ui:MenuItem x:Name="saveXmlReport" Header="Save XML Report" />
-                    <Separator />
-                    <ui:MenuItem x:Name="saveTextReport" Header="_Save Text Report" />
-                    <Separator />
+                    <!--
+                      <ui:MenuItem x:Name="openXmlReport" Header="Open XML Report" />
+                      <ui:MenuItem x:Name="saveXmlReport" Header="Save XML Report" />
+                      <Separator />
+                      <ui:MenuItem x:Name="saveTextReport" Header="_Save Text Report" />
+                      <Separator />
+                    -->
                     <ui:MenuItem x:Name="exitProgram" Header="E_xit" Click="exitProgram_Click"/>
                 </ui:MenuItem>
+                <!--
                 <ui:MenuItem x:Name="menuEdit" Header="_Edit">
                     <ui:MenuItem x:Name="copyFullTreeRoot" Header="Copy full _Tree">
                         <ui:MenuItem x:Name="copyFullTreeText" Header="As _Text" />
@@ -62,7 +65,9 @@
                     <ui:MenuItem x:Name="copyReportFull" Header="_Copy full Report" />
                     <ui:MenuItem x:Name="copyReportSelect" Header="Copy Report from selected _Item" />
                 </ui:MenuItem>
-                <ui:MenuItem x:Name="menuOptions" Header="_Options">
+                -->
+              <ui:MenuItem x:Name="menuOptions" Header="_Options">
+                    <!--
                     <ui:MenuItem x:Name="autoRefresh" Header="_Auto Refresh" IsCheckable="True" IsChecked="{Binding Path=Settings_AutoRefresh, Mode=TwoWay}" />
                     <ui:MenuItem x:Name="endpointDescriptors" Header="_Endpoint Descriptors" IsCheckable="True" IsChecked="{Binding Path=Settings_EndpointDescriptors, Mode=TwoWay}"/>
                     <ui:MenuItem x:Name="readMsftStringDescriptor" Header="_Read Msft String Descriptor 0xEE" IsCheckable="True" />
@@ -89,13 +94,17 @@
                     <ui:MenuItem x:Name="font" Header="_Font..." />
                     <ui:MenuItem x:Name="bgColour" Header="_Background Colour..." />
                     <ui:MenuItem x:Name="highlighting" Header="_Highlighting..." />
+                    -->
                     <ui:MenuItem x:Name="darkTheme" Header="_Dark Theme" IsCheckable="True" Click="updateTheme_Click" helpers:RadioMenuItem.GroupName="themeGroup" />
                     <ui:MenuItem x:Name="highContrast" Header="High _Contrast" IsCheckable="True" Click="updateTheme_Click" helpers:RadioMenuItem.GroupName="themeGroup" />
                     <Separator />
+                    <!--
                     <ui:MenuItem x:Name="forceSingleInstance" Header="Allow _only one instance" IsCheckable="True" />
                     <Separator />
+                    -->
                     <ui:MenuItem x:Name="alwaysOnTop" Header="_Always On Top" IsCheckable="True" />
                 </ui:MenuItem>
+                <!--
                 <ui:MenuItem x:Name="menuTools" Header="_Tools">
                     <ui:MenuItem x:Name="deviceManager" Header="De_vice Manager" />
                     <ui:MenuItem x:Name="diskManagement" Header="_Disk Management" />
@@ -105,6 +114,7 @@
                 <ui:MenuItem x:Name="menuHelp" Header="_Help">
                     <ui:MenuItem x:Name="about" Header="_About" />
                 </ui:MenuItem>
+                -->
             </Menu>
         </DockPanel>
 
@@ -150,6 +160,7 @@
     
     <Window.Resources>
         <ContextMenu x:Key="devContextMenu">
+            <!--
             <MenuItem x:Name="contextMenu_safelyRemove" Header="Safely remove" Click="contextMenu_safelyRemove_Click" />
             <MenuItem x:Name="contextMenu_restartDevice" Header="Restart device" Click="contextMenu_restartDevice_Click" />
             <Separator />
@@ -161,6 +172,7 @@
             <Separator />
             <MenuItem x:Name="contextMenu_regedit" Header="Regedit..." Click="contextMenu_regedit_Click" />
             <Separator />
+            -->
             <MenuItem x:Name="contextMenu_devprops" Header="Device properties" Click="contextMenu_devprops_Click" />
         </ContextMenu>
     </Window.Resources>

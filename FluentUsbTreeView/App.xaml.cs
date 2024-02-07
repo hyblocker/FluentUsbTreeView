@@ -29,7 +29,6 @@ namespace FluentUsbTreeView {
 
             Logger.Info($"Received arguments: \"{string.Join(" ", Arguments)}\"");
 
-
             DeviceManaged.RegisterDeviceNotificationHandler();
             AppDomain.CurrentDomain.ProcessExit += (s, ev) => DeviceManaged.UnregisterDeviceNotifications();
         }

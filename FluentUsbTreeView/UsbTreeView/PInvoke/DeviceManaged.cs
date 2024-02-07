@@ -20,6 +20,9 @@ namespace FluentUsbTreeView.PInvoke {
         /// </summary>
         public static Action OnDeviceNodesChanged;
 
+        // Prevent race conditions
+        private static volatile bool s_isUnregisteringDevice = false;
+
         public static void RegisterDeviceNotificationHandler() {
             if ( s_deviceNotificationHandle != IntPtr.Zero && s_deviceNotificationHandle != Kernel32.INVALID_HANDLE_VALUE ) {
                 return;
@@ -31,16 +34,20 @@ namespace FluentUsbTreeView.PInvoke {
         }
 
         public static void UnregisterDeviceNotifications() {
-            if ( s_deviceNotificationHandle != null && ( s_deviceNotificationHandle != IntPtr.Zero && s_deviceNotificationHandle != Kernel32.INVALID_HANDLE_VALUE ) )
-                User32.UnregisterDeviceNotification(s_deviceNotificationHandle);
-            try {
-                if ( s_window != null ) {
-                    s_window.Dispatcher.Invoke(() => {
-                        s_window.Close();
-                    });
+            if ( s_isUnregisteringDevice == false ) {
+                s_isUnregisteringDevice = true;
+                if ( s_deviceNotificationHandle != null && ( s_deviceNotificationHandle != IntPtr.Zero && s_deviceNotificationHandle != Kernel32.INVALID_HANDLE_VALUE ) )
+                    User32.UnregisterDeviceNotification(s_deviceNotificationHandle);
+                try {
+                    if ( s_window != null ) {
+                        s_window.Dispatcher.Invoke(() => {
+                            s_window.Close();
+                        });
+                    }
+                } finally {
+                    s_deviceNotificationHandle = Kernel32.INVALID_HANDLE_VALUE;
                 }
-            } finally {
-                s_deviceNotificationHandle = Kernel32.INVALID_HANDLE_VALUE;
+                s_isUnregisteringDevice = false;
             }
         }
 

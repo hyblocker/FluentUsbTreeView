@@ -338,7 +338,7 @@ namespace FluentUsbTreeView.Ui {
             RegistryKey registryAutoRemovalKey = Registry.LocalMachine.OpenSubKey("SYSTEM\\CurrentControlSet\\Control\\USB\\AutomaticSurpriseRemoval", false);
 
             contentString.Append("\n\t========================== My Computer ==========================\n");
-            contentString.Append($"{PropertyTitle("Operating System")}: {osString}\n");
+            // contentString.Append($"{PropertyTitle("Operating System")}: {osString}\n");
             contentString.Append($"{PropertyTitle("Up Time")}: {finalUptimeString}\n");
             contentString.Append($"{PropertyTitle("Computer Name")}: {Environment.MachineName}\n");
             contentString.Append($"{PropertyTitle("Admin Privileges")}: {WriteBool(Util.IsCurrentProcessElevated())}\n");
@@ -347,7 +347,7 @@ namespace FluentUsbTreeView.Ui {
             contentString.Append("\n");
 
             contentString.Append($"{PropertyTitle("UsbTreeView Version")}: {Assembly.GetExecutingAssembly().GetName().Version} ({processorArch})\n");
-            contentString.Append($"{PropertyTitle("Settings")}: {Settings.Instance.SettingsPath}\n");
+            // contentString.Append($"{PropertyTitle("Settings")}: {Settings.Instance.SettingsPath}\n");
 
             contentString.Append("\n");
 
@@ -356,9 +356,9 @@ namespace FluentUsbTreeView.Ui {
             contentString.Append($"{PropertyTitle("USB Standard Hubs")}: {treeState.ExternalHubs}\n");
             contentString.Append($"{PropertyTitle("USB Peripheral Devices")}: {treeState.PeripheralDevices}\n");
 
-            contentString.Append("\n");
+            // contentString.Append("\n");
 
-            contentString.Append($"{PropertyTitle("Device Class Filter Drivers")}:\n");
+            // contentString.Append($"{PropertyTitle("Device Class Filter Drivers")}:\n");
             // contentString.Append($"{PropertyTitle("USB Upper")}: {friendlyName}\n");
 
             contentString.Append("\n\n");
@@ -370,6 +370,7 @@ namespace FluentUsbTreeView.Ui {
             contentString.Append($"{PropertyTitle("HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\USB\\AutomaticSurpriseRemoval")}\n");
             contentString.Append($"{WriteRegistryProp(registryAutoRemovalKey, "AttemptRecoveryFromUsbPowerDrain")}\n");
 
+            /*
             contentString.Append($@"
     ========================== My Computer ==========================
 Operating System       : Windows 11 Pro: NT10.0 Build 22621.2361 Version 22H2 SP0 type=1 suite=100 x64
@@ -398,8 +399,9 @@ HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\USB
 HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\USB\AutomaticSurpriseRemoval
  AttemptRecoveryFromUsbPowerDrain: REG_DWORD 00000001 (1)
 ");
+            */
 
-            contentString.Append("\n\n"); // End
+            // contentString.Append("\n\n"); // End
 
             return contentString.ToString();
         }

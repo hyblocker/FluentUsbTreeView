@@ -130,37 +130,37 @@ namespace FluentUsbTreeView {
             object nodeMetadata = frameworkElement.Tag;
             
             // Fetch entries    
-            var safelyRemove    = LogicalTreeHelper.FindLogicalNode(contextMenu, "contextMenu_safelyRemove")    as WpfMenuItem;
-            var restartDevice   = LogicalTreeHelper.FindLogicalNode(contextMenu, "contextMenu_restartDevice")   as WpfMenuItem;
-            var restartPort     = LogicalTreeHelper.FindLogicalNode(contextMenu, "contextMenu_restartPort")     as WpfMenuItem;
-            var copyTreeRoot    = LogicalTreeHelper.FindLogicalNode(contextMenu, "contextMenu_copyTreeRoot")    as WpfMenuItem;
-            var copyReportRoot  = LogicalTreeHelper.FindLogicalNode(contextMenu, "contextMenu_copyReportRoot")  as WpfMenuItem;
-            var copyOtherRoot   = LogicalTreeHelper.FindLogicalNode(contextMenu, "contextMenu_copyOtherRoot")   as WpfMenuItem;
-            var regeditRoot     = LogicalTreeHelper.FindLogicalNode(contextMenu, "contextMenu_regedit")         as WpfMenuItem;
+            // var safelyRemove    = LogicalTreeHelper.FindLogicalNode(contextMenu, "contextMenu_safelyRemove")    as WpfMenuItem;
+            // var restartDevice   = LogicalTreeHelper.FindLogicalNode(contextMenu, "contextMenu_restartDevice")   as WpfMenuItem;
+            // var restartPort     = LogicalTreeHelper.FindLogicalNode(contextMenu, "contextMenu_restartPort")     as WpfMenuItem;
+            // var copyTreeRoot    = LogicalTreeHelper.FindLogicalNode(contextMenu, "contextMenu_copyTreeRoot")    as WpfMenuItem;
+            // var copyReportRoot  = LogicalTreeHelper.FindLogicalNode(contextMenu, "contextMenu_copyReportRoot")  as WpfMenuItem;
+            // var copyOtherRoot   = LogicalTreeHelper.FindLogicalNode(contextMenu, "contextMenu_copyOtherRoot")   as WpfMenuItem;
+            // var regeditRoot     = LogicalTreeHelper.FindLogicalNode(contextMenu, "contextMenu_regedit")         as WpfMenuItem;
             var devprops        = LogicalTreeHelper.FindLogicalNode(contextMenu, "contextMenu_devprops")        as WpfMenuItem;
 
             if ( nodeMetadata == null ) {
                 // Computer node
-                safelyRemove.IsEnabled      = false;
-                restartDevice.IsEnabled     = false;
-                restartPort.IsEnabled       = false;
-                copyTreeRoot.IsEnabled      = true;
-                copyReportRoot.IsEnabled    = true;
-                copyOtherRoot.IsEnabled     = false;
-                regeditRoot.IsEnabled       = true;
+                // safelyRemove.IsEnabled      = false;
+                // restartDevice.IsEnabled     = false;
+                // restartPort.IsEnabled       = false;
+                // copyTreeRoot.IsEnabled      = true;
+                // copyReportRoot.IsEnabled    = true;
+                // copyOtherRoot.IsEnabled     = false;
+                // regeditRoot.IsEnabled       = true;
                 devprops.IsEnabled          = false;
 
             } else {
                 Type metadataType = nodeMetadata?.GetType();
                 
                 // Assume everything should be enabled
-                safelyRemove.IsEnabled      = true;
-                restartDevice.IsEnabled     = true;
-                restartPort.IsEnabled       = true;
-                copyTreeRoot.IsEnabled      = true;
-                copyReportRoot.IsEnabled    = true;
-                copyOtherRoot.IsEnabled     = true;
-                regeditRoot.IsEnabled       = true;
+                // safelyRemove.IsEnabled      = true;
+                // restartDevice.IsEnabled     = true;
+                // restartPort.IsEnabled       = true;
+                // copyTreeRoot.IsEnabled      = true;
+                // copyReportRoot.IsEnabled    = true;
+                // copyOtherRoot.IsEnabled     = true;
+                // regeditRoot.IsEnabled       = true;
                 devprops.IsEnabled          = true;
 
                 if ( metadataType == typeof(UsbHostControllerInfo) ) {
@@ -188,9 +188,9 @@ namespace FluentUsbTreeView {
                             devprops.Tag = metadata.UsbDeviceProperties.DeviceId;
                         }
                     } else {
-                        safelyRemove.IsEnabled  = false;
-                        restartDevice.IsEnabled = false;
-                        copyOtherRoot.IsEnabled = false;
+                        // safelyRemove.IsEnabled  = false;
+                        // restartDevice.IsEnabled = false;
+                        // copyOtherRoot.IsEnabled = false;
                         devprops.IsEnabled      = false;
                     }
                 }
