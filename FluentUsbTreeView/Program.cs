@@ -3,6 +3,8 @@ using System.Reflection;
 using System.Linq;
 using System.Windows;
 using FluentUsbTreeView;
+using FluentUsbTreeView.UsbTreeView;
+using System.IO;
 
 namespace Editor {
     public class Program {
@@ -11,7 +13,8 @@ namespace Editor {
 
         [STAThreadAttribute]
         public static void Main() {
-            Logger.Init("fluent-utv.log");
+            string logFilePath = Path.Combine(Settings.Instance.ApplicationDirectory, $"fluent_utv_{DateTime.Now.ToString("yyyyMMdd-HHmmss.ffffff")}.log");
+            Logger.Init(logFilePath);
 
             AppDomain.CurrentDomain.AssemblyResolve += (sender, args) => {
                 var assemblyName = new AssemblyName(args.Name).Name + ".dll";

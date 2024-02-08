@@ -1,4 +1,5 @@
-﻿using System;
+﻿using FluentUsbTreeView.UsbTreeView;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -65,7 +66,7 @@ namespace FluentUsbTreeView {
         /// </summary>
         public static void Init(string filePath = "") {
             if ( filePath == "" )
-                LogFilePath = $"{Assembly.GetCallingAssembly().GetName()}_{DateTime.Now.ToString("yyyyMMdd-HHmmss.ffffff")}.log";
+                LogFilePath = Path.Combine(Settings.Instance.ApplicationDirectory, $"{Assembly.GetCallingAssembly().GetName()}_{DateTime.Now.ToString("yyyyMMdd-HHmmss.ffffff")}.log");
             else
                 LogFilePath = filePath;
 
