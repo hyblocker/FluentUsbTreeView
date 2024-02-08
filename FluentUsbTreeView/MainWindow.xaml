@@ -134,7 +134,7 @@
             <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Background="Transparent" />
             <Grid Grid.Column="2">
                 <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                    <ui:TextBox x:Name="rawTextContent" FontFamily="Cascadia Code" Padding="4" TextWrapping="NoWrap" IsReadOnly="True" Background="Transparent">
+                    <ui:TextBox x:Name="rawTextContent" FontFamily="Cascadia Code" Padding="4,4,20,4" TextWrapping="NoWrap" IsReadOnly="True" Background="Transparent">
                         Lorem ipsum dolor sit amet
                     </ui:TextBox>
                 </ScrollViewer>
