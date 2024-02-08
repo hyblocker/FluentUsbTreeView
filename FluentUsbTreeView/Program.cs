@@ -2,11 +2,10 @@
 using System.Reflection;
 using System.Linq;
 using System.Windows;
-using FluentUsbTreeView;
 using FluentUsbTreeView.UsbTreeView;
 using System.IO;
 
-namespace Editor {
+namespace FluentUsbTreeView {
     public class Program {
         private static Assembly ExecutingAssembly = Assembly.GetExecutingAssembly();
         private static string[] EmbeddedLibraries = ExecutingAssembly.GetManifestResourceNames().Where(x => x.EndsWith(".dll")).ToArray();
