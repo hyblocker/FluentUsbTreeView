@@ -1333,6 +1333,43 @@ namespace FluentUsbTreeView.UsbTreeView {
             return true;
         }
 
+        public static bool GetDevicePropertyStringList(uint devInst, CM_DRP Property, out string[] ppBuffer) {
+            CR_RESULT bResult;
+            uint requiredLength = 0;
+            REG_VALUE_TYPE pulRegDataType;
+            int lastError;
+
+            bResult = CfgMgr32.CM_Get_DevNode_Registry_Property(devInst, Property, out pulRegDataType, IntPtr.Zero, ref requiredLength);
+            lastError = Marshal.GetLastWin32Error();
+
+            // Property does not exist
+            if ( bResult == CR_RESULT.CR_NO_SUCH_VALUE || lastError == Kernel32.ERROR_INVALID_DATA ) {
+                ppBuffer = new string[] { };
+                return false;
+            }
+
+            if ( ( requiredLength == 0 ) || ( bResult != CR_RESULT.CR_BUFFER_SMALL && lastError != Kernel32.ERROR_INSUFFICIENT_BUFFER ) ) {
+                ppBuffer = new string[] { };
+                HandleNativeFailure();
+                return false;
+            }
+
+            IntPtr buffer = Marshal.AllocHGlobal( ( int ) requiredLength);
+            bResult = CfgMgr32.CM_Get_DevNode_Registry_Property(devInst, Property, out pulRegDataType, buffer, ref requiredLength);
+            string ret = Marshal.PtrToStringUni(buffer, (int)requiredLength/2);
+            Marshal.FreeHGlobal(buffer);
+
+            if ( bResult != CR_RESULT.CR_SUCCESS ) {
+                ppBuffer = new string[] { };
+                HandleNativeFailure();
+                return false;
+            }
+
+            ppBuffer = ret.Substring(0, ret.Length - 2).Split('\0');
+
+            return true;
+        }
+
         public static bool GetDevicePropertyStruct<T>(uint devInst, CM_DRP Property, out T ppBuffer) where T : struct {
             CR_RESULT bResult;
             uint requiredLength = 0;

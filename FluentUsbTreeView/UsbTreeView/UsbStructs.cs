@@ -85,14 +85,14 @@ namespace FluentUsbTreeView {
         public uint SubSysID;
         public UsbApi.USB_DEVICE_SPEED Revision;
         public string DeviceDesc;
-        public string HwId;
+        public string[] HwId;
         public string Service;
         public string DeviceClass;
         public string Enumerator;
         public int Address;
         public string ContainerId;
         public string LocationInfo;
-        public string LocationPaths;
+        public string[] LocationPaths;
         public DN_Status Status;
         public CM_PROB ProblemCode;
         public Guid DeviceClassGuid;

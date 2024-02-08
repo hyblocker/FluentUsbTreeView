@@ -290,7 +290,7 @@ namespace FluentUsbTreeView.UsbTreeView {
             CR_RESULT pollStatus = CfgMgr32.CM_Get_DevNode_Status(out DevProps.Status, out DevProps.ProblemCode, deviceInfoData.DevInst, 0);
 
             // We don't fail if the following registry query fails as these fields are additional information only
-            UsbEnumator.GetDevicePropertyString(deviceInfoData.DevInst, CM_DRP.CM_DRP_HARDWAREID, out DevProps.HwId);
+            UsbEnumator.GetDevicePropertyStringList(deviceInfoData.DevInst, CM_DRP.CM_DRP_HARDWAREID, out DevProps.HwId);
             UsbEnumator.GetDevicePropertyString(deviceInfoData.DevInst, CM_DRP.CM_DRP_SERVICE, out DevProps.Service);
             UsbEnumator.GetDevicePropertyString(deviceInfoData.DevInst, CM_DRP.CM_DRP_CLASS, out DevProps.DeviceClass);
             UsbEnumator.GetDevicePropertyStruct(deviceInfoData.DevInst, CM_DRP.CM_DRP_CLASSGUID, out DevProps.DeviceClassGuid);
@@ -306,7 +306,7 @@ namespace FluentUsbTreeView.UsbTreeView {
             UsbEnumator.GetDevicePropertyInt32(deviceInfoData.DevInst,  CM_DRP.CM_DRP_ADDRESS, out DevProps.Address);
             UsbEnumator.GetDevicePropertyString(deviceInfoData.DevInst, CM_DRP.CM_DRP_BASE_CONTAINERID, out DevProps.ContainerId);
             UsbEnumator.GetDevicePropertyString(deviceInfoData.DevInst, CM_DRP.CM_DRP_LOCATION_INFORMATION, out DevProps.LocationInfo);
-            UsbEnumator.GetDevicePropertyString(deviceInfoData.DevInst, CM_DRP.CM_DRP_LOCATION_PATHS, out DevProps.LocationPaths);
+            UsbEnumator.GetDevicePropertyStringList(deviceInfoData.DevInst, CM_DRP.CM_DRP_LOCATION_PATHS, out DevProps.LocationPaths);
             UsbEnumator.GetDevicePropertyString(deviceInfoData.DevInst, CM_DRP.CM_DRP_FRIENDLYNAME, out DevProps.FriendlyName);
             UsbEnumator.GetDevicePropertyString(deviceInfoData.DevInst, CM_DRP.CM_DRP_MFG, out DevProps.Manufacturer);
 
