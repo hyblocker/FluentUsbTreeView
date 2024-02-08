@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using Wpf.Ui.Controls;
@@ -71,9 +72,28 @@ namespace FluentUsbTreeView.Ui {
             return unicodeString;
         }
 
+        public static byte[] GetStructAsBytes<T>(T data) where T : struct {
+            int size = Marshal.SizeOf(data);
+            byte[] arr = new byte[size];
+
+            IntPtr ptr = IntPtr.Zero;
+            try {
+                ptr = Marshal.AllocHGlobal(size);
+                Marshal.StructureToPtr(data, ptr, true);
+                Marshal.Copy(ptr, arr, 0, size);
+            } finally {
+                Marshal.FreeHGlobal(ptr);
+            }
+            return arr;
+        }
+
         /// <summary>
         /// Writes a hex dump with the ascii interpretation on the right
         /// </summary>
+        private static string WriteHexDumpWithAscii<T>(T data, int length = -1, int offsetFromLeft = 0) where T : struct {
+            return WriteHexDumpWithAscii(GetStructAsBytes(data), length, offsetFromLeft);
+        }
+
         private static string WriteHexDumpWithAscii(byte[] bytes, int length = -1, int offsetFromLeft = 0) {
             StringBuilder stringBuilder = new StringBuilder();
             StringBuilder asciiBuffer = new StringBuilder();
@@ -735,7 +755,7 @@ USB_Version              : 0x00");
                         contentString.Append($"{PropertyTitle("bDescriptorType")}: {WriteHex(stringDesc.StringDescriptor.bDescriptorType, 2)} ({stringDesc.StringDescriptor.bDescriptorType})\n");
                         contentString.Append($"{PropertyTitle($"Language {WriteHex(stringDesc.LanguageID, 4)}")}: \"{ReadBytesAsString(stringDesc.StringDescriptor.bString)}\"\n");
                         contentString.Append(hexDumpStr);
-                        contentString.Append(WriteHexDumpWithAscii(stringDesc.StringDescriptor.bString, stringDesc.StringDescriptor.bLength, hexDumpStr.Length));
+                        contentString.Append(WriteHexDumpWithAscii(stringDesc.StringDescriptor, stringDesc.StringDescriptor.bLength, hexDumpStr.Length));
                         contentString.Append("\n");
                     }
                 } else {
