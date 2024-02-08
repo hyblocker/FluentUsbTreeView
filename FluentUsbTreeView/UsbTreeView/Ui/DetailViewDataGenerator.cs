@@ -342,12 +342,12 @@ namespace FluentUsbTreeView.Ui {
             contentString.Append($"{PropertyTitle("Up Time")}: {finalUptimeString}\n");
             contentString.Append($"{PropertyTitle("Computer Name")}: {Environment.MachineName}\n");
             contentString.Append($"{PropertyTitle("Admin Privileges")}: {WriteBool(Util.IsCurrentProcessElevated())}\n");
-            contentString.Append($"{PropertyTitle("User Account Control")}: {WriteBool(true)}\n"); // @TODO: Implement
+            // contentString.Append($"{PropertyTitle("User Account Control")}: {WriteBool(true)}\n"); // @TODO: Implement
 
             contentString.Append("\n");
 
             contentString.Append($"{PropertyTitle("UsbTreeView Version")}: {Assembly.GetExecutingAssembly().GetName().Version} ({processorArch})\n");
-            // contentString.Append($"{PropertyTitle("Settings")}: {Settings.Instance.SettingsPath}\n");
+            contentString.Append($"{PropertyTitle("Settings")}: {Settings.Instance.SettingsPath}\n");
 
             contentString.Append("\n");
 

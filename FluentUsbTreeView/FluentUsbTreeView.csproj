@@ -93,8 +93,14 @@
     <ApplicationIcon>application.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Core" />
@@ -108,7 +114,7 @@
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
     <Reference Include="Wpf.Ui, Version=3.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\WPF-UI.3.0.0-preview.7\lib\net472\Wpf.Ui.dll</HintPath>
+      <HintPath>..\packages\WPF-UI.3.0.0\lib\net472\Wpf.Ui.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -116,8 +122,17 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="App.xaml.cs">
+      <DependentUpon>App.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Page Include="MainWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
+      <SubType>Code</SubType>
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="UIExtensions\RadioMenuItem.cs" />
@@ -145,10 +160,6 @@
     <Compile Include="Util\CoreExtensions.cs" />
     <Compile Include="Util\Logger.cs" />
     <Compile Include="Util\Util.cs" />
-    <Compile Include="App.xaml.cs">
-      <DependentUpon>App.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">
@@ -189,12 +200,6 @@
     <Resource Include="Assets\usb-ssusb-256.png" />
     <Resource Include="Assets\usb-malfunction-256.png" />
     <Resource Include="Assets\application-icon-256.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <Page Include="MainWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
   </ItemGroup>
   <Target Name="EmbedReferencedAssemblies" AfterTargets="ResolveAssemblyReferences">
     <ItemGroup>

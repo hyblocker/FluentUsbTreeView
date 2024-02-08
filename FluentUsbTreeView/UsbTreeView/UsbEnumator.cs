@@ -2341,7 +2341,7 @@ namespace FluentUsbTreeView.UsbTreeView {
                 // the Request structure.  Because this location is not "covered"
                 // by the structure allocation, we're forced to zero out this
                 // chunk of memory by using the StringToHGlobalAuto() hack above
-                IntPtr ptrStringDesc = new IntPtr(ptrRequest.ToInt32() + Marshal.SizeOf(Request));
+                IntPtr ptrStringDesc = new IntPtr(ptrRequest.ToInt64() + Marshal.SizeOf(Request));
                 T descriptorData = (T)Marshal.PtrToStructure(ptrStringDesc, typeof(T));
                 return descriptorData;
             } else {

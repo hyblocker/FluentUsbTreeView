@@ -120,11 +120,11 @@
 
         <!-- content -->
         <!-- effectively a splitview -->
-        <Grid Grid.Row="2">
+        <Grid Grid.Row="2" x:Name="rootGrid">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition MinWidth="100" />
+                <ColumnDefinition MinWidth="100" Width="2*" />
                 <ColumnDefinition Width="5" />
-                <ColumnDefinition MinWidth="100" />
+                <ColumnDefinition MinWidth="100" Width="3*"/>
             </Grid.ColumnDefinitions>
 
             <Grid Grid.Column="0">

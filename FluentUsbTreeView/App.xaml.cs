@@ -1,4 +1,5 @@
 ﻿using FluentUsbTreeView.PInvoke;
+using FluentUsbTreeView.UsbTreeView;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -28,6 +29,9 @@ namespace FluentUsbTreeView {
             Kernel32.EnableAnsiCmd();
 
             Logger.Info($"Received arguments: \"{string.Join(" ", Arguments)}\"");
+
+            // Try loading settings
+            Settings.Instance.LoadSettings();
 
             DeviceManaged.RegisterDeviceNotificationHandler();
             AppDomain.CurrentDomain.ProcessExit += (s, ev) => DeviceManaged.UnregisterDeviceNotifications();

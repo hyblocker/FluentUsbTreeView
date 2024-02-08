@@ -22,6 +22,8 @@ using Wpf.Ui.Controls;
 using static FluentUsbTreeView.PInvoke.UsbApi;
 using WpfTreeViewItem = System.Windows.Controls.TreeViewItem;
 using WpfMenuItem = System.Windows.Controls.MenuItem;
+using ContextMenu = System.Windows.Controls.ContextMenu;
+using System.Windows.Forms;
 
 namespace FluentUsbTreeView {
     /// <summary>
@@ -29,14 +31,16 @@ namespace FluentUsbTreeView {
     /// </summary>
     public partial class MainWindow {
 
+        const int DEFAULT_WIDTH = -1;
+        const int DEFAULT_HEIGHT = -1;
+
+
         private static MainWindow s_instance = null;
         public static MainWindow Instance {
             get {
                 return s_instance;
             }
         }
-
-        private Settings m_settings;
 
         private UsbTreeState m_usbTreeState = new UsbTreeState();
 
@@ -47,9 +51,13 @@ namespace FluentUsbTreeView {
                 throw new Exception("Somehow ended up with two main windows from the same instance?");
             }
             DataContext = this;
-            m_settings = Settings.Instance;
             Wpf.Ui.Appearance.SystemThemeWatcher.Watch(this);
             InitializeComponent();
+            TrySetWindowPositionAndBounds();
+            if ( Settings.Instance.SplitterPosition != Settings.INVALID_POSITION ) {
+                rootGrid.ColumnDefinitions[0].Width = new GridLength(Settings.Instance.SplitterPosition, GridUnitType.Star);
+                rootGrid.ColumnDefinitions[2].Width = new GridLength(Settings.Instance.SizeX - Settings.Instance.SplitterPosition - rootGrid.ColumnDefinitions[1].ActualWidth, GridUnitType.Star);
+            }
             restartAsAdmin.IsEnabled = !Util.IsCurrentProcessElevated();
 
             RefreshUsbTree();
@@ -60,6 +68,29 @@ namespace FluentUsbTreeView {
             // Register for update notifications
             DeviceManaged.OnDeviceAdded     += HandleUsbTreeDeviceUpdate;
             DeviceManaged.OnDeviceRemoved   += HandleUsbTreeDeviceUpdate;
+        }
+
+        private void TrySetWindowPositionAndBounds() {
+            // s_instance.Width = DEFAULT_WIDTH;
+            // s_instance.Height = DEFAULT_HEIGHT;
+
+            if ( Settings.Instance.PositionX != Settings.INVALID_POSITION && Settings.Instance.PositionY != Settings.INVALID_POSITION &&
+                Settings.Instance.SizeX != Settings.INVALID_POSITION && Settings.Instance.SizeY != Settings.INVALID_POSITION ) {
+
+                bool areSavedBoundsValid = IsOnScreen(Settings.Instance.PositionX, Settings.Instance.PositionY, Settings.Instance.SizeX, Settings.Instance.SizeY);
+
+                if ( !areSavedBoundsValid ) {
+                    // Window is out of the screen! We will ignore window parameters as a result
+                    // @TODO: Devise an algorithm to get like a "closest fit" window bounds if out of bounds
+                } else {
+                    // We are overriding the startup location, so inform the window
+                    WindowStartupLocation = WindowStartupLocation.Manual;
+                    this.Left   = Settings.Instance.PositionX;
+                    this.Top    = Settings.Instance.PositionY;
+                    this.Width  = Settings.Instance.SizeX;
+                    this.Height = Settings.Instance.SizeY;
+                }
+            }
         }
 
         #region File menu handling
@@ -262,6 +293,16 @@ namespace FluentUsbTreeView {
         #endregion
 
         private void MainWindow_Closed(object sender, EventArgs e) {
+            
+            // Get window props to save them before exit
+            Settings.Instance.PositionX         = ( int ) Left;
+            Settings.Instance.PositionY         = ( int ) Top;
+            Settings.Instance.SizeX             = ( int ) Width;
+            Settings.Instance.SizeY             = ( int ) Height;
+            Settings.Instance.SplitterPosition  = ( int ) rootGrid.ColumnDefinitions[0].ActualWidth;
+
+            Settings.Instance.WriteSettings();
+
             Dispatcher.Invoke(() => DeviceManaged.UnregisterDeviceNotifications());
         }
 
@@ -295,52 +336,73 @@ namespace FluentUsbTreeView {
 
         // Settings
         public bool Settings_AutoRefresh {
-            get { return m_settings.AutoRefresh; }
-            set { m_settings.AutoRefresh = value; }
+            get { return Settings.Instance.AutoRefresh; }
+            set { Settings.Instance.AutoRefresh = value; Settings.Instance.WriteSettings(); }
         }
         public bool Settings_EndpointDescriptors {
-            get { return m_settings.EndpointDescriptors; }
-            set { m_settings.EndpointDescriptors = value; }
+            get { return Settings.Instance.EndpointDescriptors; }
+            set { Settings.Instance.EndpointDescriptors = value; Settings.Instance.WriteSettings(); }
         }
         public bool Settings_ScanAllStringDescriptors {
-            get { return m_settings.ScanAllStringDescriptors; }
-            set { m_settings.ScanAllStringDescriptors = value; }
+            get { return Settings.Instance.ScanAllStringDescriptors; }
+            set { Settings.Instance.ScanAllStringDescriptors = value; Settings.Instance.WriteSettings(); }
         }
         public bool Settings_DescriptorHexDumps {
-            get { return m_settings.DescriptorHexDumps; }
-            set { m_settings.DescriptorHexDumps = value; }
+            get { return Settings.Instance.DescriptorHexDumps; }
+            set { Settings.Instance.DescriptorHexDumps = value; Settings.Instance.WriteSettings(); }
         }
         public bool Settings_DriveNumbersInTree {
-            get { return m_settings.DriveNumbersInTree; }
-            set { m_settings.DriveNumbersInTree = value; }
+            get { return Settings.Instance.DriveNumbersInTree; }
+            set { Settings.Instance.DriveNumbersInTree = value; Settings.Instance.WriteSettings(); }
         }
         public bool Settings_EndpointsInTree {
-            get { return m_settings.EndpointsInTree; }
-            set { m_settings.EndpointsInTree = value; }
+            get { return Settings.Instance.EndpointsInTree; }
+            set { Settings.Instance.EndpointsInTree = value; Settings.Instance.WriteSettings(); }
         }
 
         // Automatic expansion
         public bool Settings_ExpandForEmptyPorts {
-            get { return m_settings.ExpandForEmptyPorts; }
-            set { m_settings.ExpandForEmptyPorts = value; }
+            get { return Settings.Instance.ExpandForEmptyPorts; }
+            set { Settings.Instance.ExpandForEmptyPorts = value; Settings.Instance.WriteSettings(); }
         }
         public bool Settings_ExpandForEmptyHubs {
-            get { return m_settings.ExpandForEmptyHubs; }
-            set { m_settings.ExpandForEmptyHubs = value; }
+            get { return Settings.Instance.ExpandForEmptyHubs; }
+            set { Settings.Instance.ExpandForEmptyHubs = value; Settings.Instance.WriteSettings(); }
         }
         public bool Settings_ExpandForNewDevices {
-            get { return m_settings.ExpandForNewDevices; }
-            set { m_settings.ExpandForNewDevices = value; }
+            get { return Settings.Instance.ExpandForNewDevices; }
+            set { Settings.Instance.ExpandForNewDevices = value; Settings.Instance.WriteSettings(); }
         }
         public bool Settings_JumpToNewDevices {
-            get { return m_settings.JumpToNewDevices; }
-            set { m_settings.JumpToNewDevices = value; }
+            get { return Settings.Instance.JumpToNewDevices; }
+            set { Settings.Instance.JumpToNewDevices = value; Settings.Instance.WriteSettings(); }
         }
         public bool Settings_JumpToRemovedDevices {
-            get { return m_settings.JumpToRemovedDevices; }
-            set { m_settings.JumpToRemovedDevices = value; }
+            get { return Settings.Instance.JumpToRemovedDevices; }
+            set { Settings.Instance.JumpToRemovedDevices = value; Settings.Instance.WriteSettings(); }
         }
 
         #endregion
+
+        // Return True if a certain percent of a rectangle is shown across the total screen area of all monitors, otherwise return False.
+        public bool IsOnScreen(int posX, int posY, int sizeX, int sizeY, double MinPercentOnScreen = 0.2) {
+            return IsOnScreen(new System.Drawing.Point(posX, posY), new System.Drawing.Size(sizeX, sizeY), MinPercentOnScreen);
+        }
+
+        // Return True if a certain percent of a rectangle is shown across the total screen area of all monitors, otherwise return False.
+        public bool IsOnScreen(System.Drawing.Point RecLocation, System.Drawing.Size RecSize, double MinPercentOnScreen = 0.2) {
+            double PixelsVisible = 0;
+            System.Drawing.Rectangle Rec = new System.Drawing.Rectangle(RecLocation, RecSize);
+
+            foreach ( Screen Scrn in Screen.AllScreens ) {
+                System.Drawing.Rectangle r = System.Drawing.Rectangle.Intersect(Rec, Scrn.WorkingArea);
+                // intersect rectangle with screen
+                if ( r.Width != 0 & r.Height != 0 ) {
+                    PixelsVisible += ( r.Width * r.Height );
+                    // tally visible pixels
+                }
+            }
+            return PixelsVisible >= ( Rec.Width * Rec.Height ) * MinPercentOnScreen;
+        }
     }
 }
