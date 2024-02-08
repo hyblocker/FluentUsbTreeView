@@ -89,7 +89,7 @@ namespace FluentUsbTreeView.Ui {
                 char currentByte = (char)bytes[i];
                 asciiBuffer.Append(char.IsControl(currentByte) ? '.' : currentByte);
 
-                if ( i != 0 && i % HEX_DUMP_MAX_ELEMENTS_PER_LINE == 0 ) {
+                if ( i != 0 && (i + 1) % HEX_DUMP_MAX_ELEMENTS_PER_LINE == 0 ) {
                     stringBuilder.Append("  ");
                     stringBuilder.Append(asciiBuffer.ToString()); // ascii on the right
                     asciiBuffer.Clear();
@@ -101,7 +101,7 @@ namespace FluentUsbTreeView.Ui {
 
             // if we still have characters to print
             if (asciiBuffer.Length > 0) {
-                int lengthTillEOL = (length - 1) % HEX_DUMP_MAX_ELEMENTS_PER_LINE;
+                int lengthTillEOL = length % HEX_DUMP_MAX_ELEMENTS_PER_LINE;
                 lengthTillEOL = Math.Max(HEX_DUMP_MAX_ELEMENTS_PER_LINE - lengthTillEOL, 0); // now stores bytes we need to "print" to reach the EOL
                 lengthTillEOL = lengthTillEOL * 3 + 1; // * (2 chars for hex code + 1 char for whitespace) + 1 space at the end for the 3 spaces at EOL
                 stringBuilder.Append(new string(' ', lengthTillEOL)); // add padding till EOL
