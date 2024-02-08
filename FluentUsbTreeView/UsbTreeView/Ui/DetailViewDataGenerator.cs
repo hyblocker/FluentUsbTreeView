@@ -740,15 +740,22 @@ USB_Version              : 0x00");
                 contentString.Append($"\n\t  -------------------- String Descriptors -------------------\n");
                 if ( usbDevice.StringDescs != null ) {
                     contentString.Append($"\n\t\t\t ------ String Descriptor 0 ------\n");
+                    string hexDumpStr = $"{PropertyTitle("Data (HexDump)")}: ";
+                    List<byte> stringDescFirstBytes = new List<byte>() { usbDevice.StringDescs.Lang_bLength, (byte)usbDevice.StringDescs.Lang_bDescriptorType };
 
                     // Special case: String descriptor 0 (language identifier)
                     contentString.Append($"{PropertyTitle("bLength")}: {WriteHex(usbDevice.StringDescs.Lang_bLength, 2)} ({usbDevice.StringDescs.Lang_bLength} bytes)\n");
                     contentString.Append($"{PropertyTitle("bDescriptorType")}: {WriteHex(usbDevice.StringDescs.Lang_bDescriptorType, 2)} ({usbDevice.StringDescs.Lang_bDescriptorType})\n");
                     for ( int langId = 0; langId < usbDevice.StringDescs.LanguageIds.Length; langId++ ) {
                         contentString.Append($"{PropertyTitle($"LanguageID[{langId}]")}: {WriteHex(usbDevice.StringDescs.LanguageIds[langId], 4)}{( usbDevice.StringDescs.LanguageIds[langId] == 0x0409 ? " (English - United States)" : "" )}\n");
+                        stringDescFirstBytes.Add((byte) (usbDevice.StringDescs.LanguageIds[langId] & 255));
+                        stringDescFirstBytes.Add((byte) (usbDevice.StringDescs.LanguageIds[langId] >> 8));
                     }
 
-                    string hexDumpStr = $"{PropertyTitle("Data (HexDump)")}: ";
+                    contentString.Append(hexDumpStr);
+                    contentString.Append(WriteHexDumpWithAscii(stringDescFirstBytes.ToArray()));
+                    contentString.Append("\n");
+
                     foreach ( var stringDesc in usbDevice.StringDescs.Strings ) {
                         contentString.Append($"\n\t\t\t ------ String Descriptor {stringDesc.DescriptorIndex} ------\n");
                         contentString.Append($"{PropertyTitle("bLength")}: {WriteHex(stringDesc.StringDescriptor.bLength, 2)} ({stringDesc.StringDescriptor.bLength} bytes)\n");
