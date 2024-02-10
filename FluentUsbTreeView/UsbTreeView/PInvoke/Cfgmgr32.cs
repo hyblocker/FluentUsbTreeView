@@ -404,6 +404,18 @@ namespace FluentUsbTreeView.PInvoke {
             CM_DEVCAP_SECUREDEVICE      = (0x00000400),
         }
 
+        [Flags]
+        public enum CM_LOCATE_DEVNODE : uint {
+            /// <summary>The function retrieves the device instance handle for the specified device only if the device is currently configured in the device tree.</summary>
+            CM_LOCATE_DEVNODE_NORMAL = 0x00000000,
+            /// <summary>The function retrieves a device instance handle for the specified device if the device is currently configured in the device tree or the device is a nonpresent device that is not currently configured in the device tree.</summary>
+            CM_LOCATE_DEVNODE_PHANTOM = 0x00000001,
+            /// <summary>The function retrieves a device instance handle for the specified device if the device is currently configured in the device tree or in the process of being removed from the device tree. If the device is in the process of being removed, the function cancels the removal of the device.</summary>
+            CM_LOCATE_DEVNODE_CANCELREMOVE = 0x00000002,
+            /// <summary>Not used.</summary>
+            CM_LOCATE_DEVNODE_NOVALIDATION = 0x00000004,
+        }
+
         public enum REG_VALUE_TYPE : uint {
             /// <summary>No defined value type.</summary>
             REG_NONE = 0,
@@ -484,8 +496,10 @@ namespace FluentUsbTreeView.PInvoke {
         public static extern CR_RESULT CM_Get_DevNode_Status(out DN_Status status, out CM_PROB probNum, UInt32 devInst, int flags);
 
         [DllImport("cfgmgr32.dll", SetLastError = true)]
-        public static extern CR_RESULT CM_Get_Parent(out UInt32 pdnDevInst, UInt32 dnDevInst, int ulFlags);
-        
+        public static extern CR_RESULT CM_Get_Parent(out uint pdnDevInst, UInt32 dnDevInst, int ulFlags);
+        [DllImport("cfgmgr32.dll", SetLastError = true)]
+        public static extern CR_RESULT CM_Locate_DevNode(out uint pdnDevInst, [In, Optional, MarshalAs(UnmanagedType.LPTStr)] string pDeviceID, CM_LOCATE_DEVNODE ulFlags = CM_LOCATE_DEVNODE.CM_LOCATE_DEVNODE_NORMAL);
+
         [DllImport("cfgmgr32.dll", SetLastError = true)]
         public static extern CR_RESULT CM_Get_Device_ID_Size(out int pulLen, UInt32 dnDevInst, int flags = 0);
 

@@ -49,7 +49,9 @@ namespace FluentUsbTreeView.PInvoke {
         public const uint ERROR_INSUFFICIENT_BUFFER = 122;
         public const uint ERROR_NO_MORE_ITEMS = 259;
         public const int GENERIC_WRITE = 0x40000000;
-        public const int FILE_SHARE_WRITE = 2;
+        public const int FILE_SHARE_READ    = 0x00000001;
+        public const int FILE_SHARE_WRITE   = 0x00000002;
+        public const int FILE_SHARE_DELETE  = 0x00000004;
         public const int OPEN_EXISTING = 3;
 
         public static readonly IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
@@ -95,6 +97,7 @@ namespace FluentUsbTreeView.PInvoke {
         public const int IOCTL_USB_GET_HUB_INFORMATION_EX                   = 0x220454;
         public const int IOCTL_USB_GET_PORT_CONNECTOR_PROPERTIES            = 0x220458;
         public const int IOCTL_USB_GET_NODE_CONNECTION_INFORMATION          = 0x22040C;
+        public const int IOCTL_USB_HUB_CYCLE_PORT                           = 0x220444;
         public const int IOCTL_USB_GET_NODE_CONNECTION_INFORMATION_EX       = 0x220448;
         public const int IOCTL_USB_GET_NODE_CONNECTION_INFORMATION_EX_V2    = 0x22045C;
 

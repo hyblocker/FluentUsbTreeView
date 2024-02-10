@@ -610,5 +610,11 @@ namespace FluentUsbTreeView.PInvoke {
             public USBUSER_REQUEST_HEADER Header;
             public USB_BANDWIDTH_INFO BandwidthInformation;
         }
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        public struct USB_CYCLE_PORT_PARAMS {
+            public uint ConnectionIndex;
+            public uint StatusReturned;
+        }
     }
 }
