@@ -364,5 +364,106 @@ namespace FluentUsbTreeView.UsbTreeView {
 
             return DevProps;
         }
+
+        // https://www.codeproject.com/Articles/5363023/How-to-restart-a-USB-port
+        public static unsafe bool CycleUsbDevice(uint DevInst) {
+            // Step 1: find the USB device in the device manager
+            // uint DevInst = 0;
+            // if ( CR_RESULT.CR_SUCCESS != CfgMgr32.CM_Locate_DevNode(out DevInst, sUsbDeviceId, CM_LOCATE_DEVNODE.CM_LOCATE_DEVNODE_NORMAL) ) {
+            //     return false; //----
+            // }
+
+            // Step 2: Determine the USB port number. 
+            // Since Vista it can be read reliably from the device location info:
+            string szLocation = "";
+            UsbEnumator.GetDevicePropertyString(DevInst, CM_DRP.CM_DRP_LOCATION_INFORMATION, out szLocation);
+
+            //               0123456789
+            // must be like "Port_#0004.Hub_#0014"
+            if ( szLocation.Substring(0, Math.Min(6, szLocation.Length)) != "Port_#" ) {
+            // if ( 0 != strncmp(szLocation, "Port_#", 6) ) {
+                return false; //----
+            }
+
+            uint PortNumber = uint.Parse(
+                Regex.Replace(szLocation.Substring(6), "[^0-9](.*?)$", "")); // leading zeros are ok with atoi
+
+            // Step 3: the USB hub is the parent device
+            uint DevInstHub = 0;
+            if ( CR_RESULT.CR_SUCCESS != CfgMgr32.CM_Get_Parent(out DevInstHub, DevInst, 0) ) {
+                return false; //----
+            }
+
+            // Step 4: scan all USB hubs for this DEVINST to get its DevicePath
+            // which we need to open the hub
+            string szHubDevPath = "";
+
+            /*
+            Guid DevIfGuid = WinApiGuids.GUID_DEVINTERFACE_USB_HUB;
+
+            IntPtr hDevInfo = SetupApi.SetupDiGetClassDevs
+                     (ref DevIfGuid, null, IntPtr.Zero, DIGCF.DIGCF_DEVICEINTERFACE | DIGCF.DIGCF_PRESENT);
+
+            if ( Kernel32.INVALID_HANDLE_VALUE == hDevInfo ) {
+                return false; //----
+            }
+
+            char DataBuf[1024];
+            SP_DEVICE_INTERFACE_DETAIL_DATA pDevIfDetailData = 
+                                 (SP_DEVICE_INTERFACE_DETAIL_DATA)DataBuf;
+            SP_DEVICE_INTERFACE_DATA         DevIfData   = { sizeof(SP_DEVICE_INTERFACE_DATA) };
+            SP_DEVINFO_DATA                  DevInfoData = { sizeof(SP_DEVINFO_DATA) };
+            DWORD                            dwSize;
+
+            for ( DWORD dwIndex = 0; SetupApi.SetupDiEnumDeviceInterfaces(hDevInfo, NULL, DevIfGuid, dwIndex, &DevIfData); dwIndex++ ) {
+
+                pDevIfDetailData->cbSize = sizeof(*pDevIfDetailData); // yes, 5 (or 6 if UNICODE)
+
+                dwSize = sizeof(DataBuf);
+        
+                if ( SetupApi.SetupDiGetDeviceInterfaceDetail(hDevInfo, 
+                     &DevIfData, pDevIfDetailData, dwSize, &dwSize, &DevInfoData) ) {
+                    if ( DevInfoData.DevInst == DevInstHub ) {
+                        // hub found, keep its DevicePath
+                        strcpy(szHubDevPath, pDevIfDetailData->DevicePath);
+                        break;
+                    }
+                }
+            }
+
+            SetupApi.SetupDiDestroyDeviceInfoList(hDevInfo);
+            */
+            DeviceInfoNode devNode = UsbEnumator.FindMatchingDeviceNodeForDevInst(DevInstHub, true);
+            szHubDevPath = devNode.DeviceDetailData.DevicePath;
+
+            if ( szHubDevPath == null || szHubDevPath.Length == 0 ) {
+                return false; //----
+            }
+    
+            // Step 5: open the hub
+            IntPtr hHub = Kernel32.CreateFile(szHubDevPath, Kernel32.GENERIC_WRITE,
+                          Kernel32.FILE_SHARE_READ | Kernel32.FILE_SHARE_WRITE, 0, Kernel32.OPEN_EXISTING, 0, 0);
+
+            if ( Kernel32.INVALID_HANDLE_VALUE == hHub ) {
+                return false; //----
+            }
+
+            // Step 6: call IOCTL_USB_HUB_CYCLE_PORT
+
+            USB_CYCLE_PORT_PARAMS CyclePortParams = new USB_CYCLE_PORT_PARAMS() { ConnectionIndex = PortNumber, StatusReturned = 0 }; // in and out
+
+            int dwBytes;
+            bool res = Kernel32.DeviceIoControl(hHub, Kernel32.IOCTL_USB_HUB_CYCLE_PORT,
+                                                &CyclePortParams, Marshal.SizeOf(typeof(USB_CYCLE_PORT_PARAMS)),
+                                                &CyclePortParams, Marshal.SizeOf(typeof(USB_CYCLE_PORT_PARAMS)),
+                                                &dwBytes, IntPtr.Zero);
+            Kernel32.CloseHandle(hHub);
+
+            if ( !res ) {
+                UsbEnumator.HandleNativeFailure();
+            }
+    
+            return ( (false != res) && (0 == CyclePortParams.StatusReturned) );
+        }
     }
 }

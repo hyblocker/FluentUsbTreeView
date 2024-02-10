@@ -157,13 +157,14 @@ namespace FluentUsbTreeView {
             FrameworkElement frameworkElement = e.Source as FrameworkElement;
             // search for tree node
             frameworkElement = Util.FindAncestor<WpfTreeViewItem>(frameworkElement);
+            if ( frameworkElement == null ) { return; }
             ContextMenu contextMenu = frameworkElement.ContextMenu;
             object nodeMetadata = frameworkElement.Tag;
             
             // Fetch entries    
             // var safelyRemove    = LogicalTreeHelper.FindLogicalNode(contextMenu, "contextMenu_safelyRemove")    as WpfMenuItem;
             // var restartDevice   = LogicalTreeHelper.FindLogicalNode(contextMenu, "contextMenu_restartDevice")   as WpfMenuItem;
-            // var restartPort     = LogicalTreeHelper.FindLogicalNode(contextMenu, "contextMenu_restartPort")     as WpfMenuItem;
+            var restartPort     = LogicalTreeHelper.FindLogicalNode(contextMenu, "contextMenu_restartPort")     as WpfMenuItem;
             // var copyTreeRoot    = LogicalTreeHelper.FindLogicalNode(contextMenu, "contextMenu_copyTreeRoot")    as WpfMenuItem;
             // var copyReportRoot  = LogicalTreeHelper.FindLogicalNode(contextMenu, "contextMenu_copyReportRoot")  as WpfMenuItem;
             // var copyOtherRoot   = LogicalTreeHelper.FindLogicalNode(contextMenu, "contextMenu_copyOtherRoot")   as WpfMenuItem;
@@ -174,7 +175,7 @@ namespace FluentUsbTreeView {
                 // Computer node
                 // safelyRemove.IsEnabled      = false;
                 // restartDevice.IsEnabled     = false;
-                // restartPort.IsEnabled       = false;
+                restartPort.IsEnabled       = false;
                 // copyTreeRoot.IsEnabled      = true;
                 // copyReportRoot.IsEnabled    = true;
                 // copyOtherRoot.IsEnabled     = false;
@@ -187,7 +188,7 @@ namespace FluentUsbTreeView {
                 // Assume everything should be enabled
                 // safelyRemove.IsEnabled      = true;
                 // restartDevice.IsEnabled     = true;
-                // restartPort.IsEnabled       = true;
+                restartPort.IsEnabled       = true;
                 // copyTreeRoot.IsEnabled      = true;
                 // copyReportRoot.IsEnabled    = true;
                 // copyOtherRoot.IsEnabled     = true;
@@ -196,6 +197,7 @@ namespace FluentUsbTreeView {
 
                 if ( metadataType == typeof(UsbHostControllerInfo) ) {
                     UsbHostControllerInfo metadata = (UsbHostControllerInfo) nodeMetadata;
+                    restartPort.IsEnabled = false;
                     if ( metadata.UsbDeviceProperties == null ) {
                         devprops.IsEnabled = false;
                     } else {
@@ -204,10 +206,15 @@ namespace FluentUsbTreeView {
 
                 } else if ( metadataType == typeof(UsbHubInfo) ) {
                     UsbHubInfo metadata = (UsbHubInfo) nodeMetadata;
+                    restartPort.IsEnabled = metadata.DeviceInfoType == UsbDeviceInfoType.ExternalHub;
                     if ( metadata.UsbDeviceProperties == null ) {
                         devprops.IsEnabled = false;
+                        restartPort.IsEnabled = false;
                     } else {
                         devprops.Tag = metadata.UsbDeviceProperties.DeviceId;
+                        if ( restartPort.IsEnabled ) {
+                            restartPort.Tag = metadata.DeviceInfoNode.DeviceInfoData.DevInst;
+                        }
                     }
 
                 } else if ( metadataType == typeof(USBDEVICEINFO) ) {
@@ -215,8 +222,11 @@ namespace FluentUsbTreeView {
                     if (metadata.ConnectionInfo.ConnectionStatus != USB_CONNECTION_STATUS.NoDeviceConnected) {
                         if ( metadata.UsbDeviceProperties == null ) {
                             devprops.IsEnabled = false;
+                            restartPort.IsEnabled = false;
                         } else {
                             devprops.Tag = metadata.UsbDeviceProperties.DeviceId;
+                            restartPort.IsEnabled = false;
+                            // restartPort.Tag = metadata.DeviceInfoNode.DeviceInfoData.DevInst;
                         }
                     } else {
                         // safelyRemove.IsEnabled  = false;
@@ -327,7 +337,9 @@ namespace FluentUsbTreeView {
         }
 
         private void contextMenu_restartPort_Click(object sender, RoutedEventArgs e) {
-
+            WpfMenuItem menuElement = (sender as WpfMenuItem);
+            uint devInst = (uint) menuElement.Tag;
+            DeviceNode.CycleUsbDevice( devInst );
         }
 
         #endregion

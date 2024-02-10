@@ -163,10 +163,10 @@
             <!--
             <MenuItem x:Name="contextMenu_safelyRemove" Header="Safely remove" Click="contextMenu_safelyRemove_Click" />
             <MenuItem x:Name="contextMenu_restartDevice" Header="Restart device" Click="contextMenu_restartDevice_Click" />
-            <Separator />
+            <Separator />-->
             <MenuItem x:Name="contextMenu_restartPort" Header="Restart port" Click="contextMenu_restartPort_Click" />
             <Separator />
-            <MenuItem x:Name="contextMenu_copyTreeRoot" Header="Copy tree from here" />
+            <!--<MenuItem x:Name="contextMenu_copyTreeRoot" Header="Copy tree from here" />
             <MenuItem x:Name="contextMenu_copyReportRoot" Header="Copy report from here" />
             <MenuItem x:Name="contextMenu_copyOtherRoot" Header="Copy..." />
             <Separator />

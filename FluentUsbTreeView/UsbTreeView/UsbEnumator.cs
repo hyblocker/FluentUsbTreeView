@@ -376,9 +376,10 @@ namespace FluentUsbTreeView.UsbTreeView {
             // Since this is a root hub the index is ALWAYS 1
             driverKeyName = GetDriverKeyName(hHubDevice, 1);
 
+            DeviceInfoNode deviceNode = FindMatchingDeviceNodeForDevicePath(devicePath, true);
+
             // @TODO: a
             if ( driverKeyName == null ) {
-                DeviceInfoNode deviceNode = FindMatchingDeviceNodeForDevicePath(devicePath, true);
                 if ( deviceNode != null ) {
                     driverKeyName = deviceNode.DeviceDriverName;
                 }
@@ -387,14 +388,14 @@ namespace FluentUsbTreeView.UsbTreeView {
                 // }
             }
             if ( DevProps == null ) {
-                DeviceInfoNode devNode = FindMatchingDeviceNodeForDevicePath(devicePath, true);
-                if (devNode != null ) {
-                    DevProps = DeviceNode.PollDeviceProperties(devNode.DeviceInfo, devNode.DeviceInfoData);
+                if (deviceNode != null ) {
+                    DevProps = DeviceNode.PollDeviceProperties(deviceNode.DeviceInfo, deviceNode.DeviceInfoData);
                 }
             }
             info.UsbDeviceProperties = DevProps;
             info.UsbDeviceProperties.DevicePath = devicePath;
             info.UsbDeviceProperties.DriverKey = driverKeyName;
+            info.DeviceInfoNode = deviceNode;
 
             // Build the leaf name from the port number and the device description
             if ( !isRootHub ) {
@@ -684,7 +685,7 @@ namespace FluentUsbTreeView.UsbTreeView {
 
                         if ( driverKeyName.Length < MAX_DRIVER_KEY_NAME ) {
                             DevProps = DeviceNode.DriverNameToDeviceProperties(driverKeyName, cbDriverName);
-                            pNode = FindMatchingDeviceNodeForDriverName(driverKeyName, connectionInfoEx.DeviceIsHub != 0);
+                            pNode = FindMatchingDeviceNodeForDevicePath(devicePath, connectionInfoEx.DeviceIsHub != 0);
                         }
                         // FREE(driverKeyName);
                     }
@@ -1144,8 +1145,6 @@ namespace FluentUsbTreeView.UsbTreeView {
             bool                    success = false;
             int                     nBytes = 0;
             int                     nBytesReturned = 0;
-
-            Logger.Info("Getting driver keyname...");
 
             USB_NODE_CONNECTION_DRIVERKEY_NAME driverKeyName = new USB_NODE_CONNECTION_DRIVERKEY_NAME() {
                 ConnectionIndex = connectionIndex,
@@ -2418,15 +2417,13 @@ namespace FluentUsbTreeView.UsbTreeView {
             return null;
         }
 
-        private static DeviceInfoNode FindMatchingDeviceNodeForDevicePath(string DevicePath, bool IsHub) {
+        internal static DeviceInfoNode FindMatchingDeviceNodeForDevicePath(string DevicePath, bool IsHub) {
             DeviceGuidList pList            = null;
-            // LinkedListNode<DeviceInfoNode>  pEntry = null;
 
             pList = IsHub ? s_HubList : s_DeviceList;
 
             foreach ( DeviceInfoNode pEntry in pList.ListHead ) {
                 if ( DevicePath.ToLowerInvariant() == pEntry.DeviceDetailData.DevicePath.ToLowerInvariant() ) {
-                    DeviceInfoNode targetNode = pEntry;
                     return pEntry;
                 }
             }
@@ -2434,6 +2431,19 @@ namespace FluentUsbTreeView.UsbTreeView {
             return null;
         }
 
+        internal static DeviceInfoNode FindMatchingDeviceNodeForDevInst(uint DevInst, bool IsHub) {
+            DeviceGuidList pList            = null;
+
+            pList = IsHub ? s_HubList : s_DeviceList;
+
+            foreach ( DeviceInfoNode pEntry in pList.ListHead ) {
+                if ( DevInst == pEntry.DeviceInfoData.DevInst ) {
+                    return pEntry;
+                }
+            }
+
+            return null;
+        }
 
         internal static void HandleNativeFailure([CallerLineNumber] int lineNumber = 0, [CallerFilePath] string filePath = "", [CallerMemberName] string memberName = "") {
             int error = Marshal.GetLastWin32Error();
