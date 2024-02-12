@@ -82,47 +82,62 @@ namespace FluentUsbTreeView.PInvoke {
         }
 
         public enum USB_CONTROLLER_FLAVOR {
-            USB_HcGeneric,
-            OHCI_Generic,
-            OHCI_Hydra,
-            OHCI_NEC,
-            UHCI_Generic,
-            UHCI_Piix4,
-            UHCI_Piix3,
-            UHCI_Ich2,
-            UHCI_Reserved204,
-            UHCI_Ich1,
-            UHCI_Ich3m,
-            UHCI_Ich4,
-            UHCI_Ich5,
-            UHCI_Ich6,
-            UHCI_Intel,
-            UHCI_VIA,
-            UHCI_VIA_x01,
-            UHCI_VIA_x02,
-            UHCI_VIA_x03,
-            UHCI_VIA_x04,
-            UHCI_VIA_x0E_FIFO,
-            EHCI_Generic,
-            EHCI_NEC,
-            EHCI_Lucent,
-            EHCI_NVIDIA_Tegra2,
-            EHCI_NVIDIA_Tegra3,
-            EHCI_Intel_Medfield
+            USB_HcGeneric           = 0,
+            OHCI_Generic            = 100,
+            OHCI_Hydra              = 101,
+            OHCI_NEC                = 102,
+            UHCI_Generic            = 200,
+            UHCI_Piix4              = 201,
+            UHCI_Piix3              = 202,
+            UHCI_Ich2               = 203,
+            UHCI_Reserved204        = 204,
+            UHCI_Ich1               = 205,
+            UHCI_Ich3m              = 206,
+            UHCI_Ich4               = 207,
+            UHCI_Ich5               = 208,
+            UHCI_Ich6               = 209,
+            UHCI_Intel              = 249,
+            UHCI_VIA                = 250,
+            UHCI_VIA_x01            = 251,
+            UHCI_VIA_x02            = 252,
+            UHCI_VIA_x03            = 253,
+            UHCI_VIA_x04            = 254,
+            UHCI_VIA_x0E_FIFO       = 264,
+            EHCI_Generic            = 1000,
+            EHCI_NEC                = 2000,
+            EHCI_Lucent             = 3000,
+            EHCI_NVIDIA_Tegra2      = 4000,
+            EHCI_NVIDIA_Tegra3      = 4001,
+            EHCI_Intel_Medfield     = 5001,
         };
 
+        /// <summary>The USB_USER_ERROR_CODE enumeration lists the error codes that a USB user-mode request reports when it fails.</summary>
+        /// <remarks>
+        /// <para><see href="https://learn.microsoft.com/windows/win32/api/usbuser/ne-usbuser-usb_user_error_code">Learn more about this API from docs.microsoft.com</see>.</para>
+        /// </remarks>
         public enum USB_USER_ERROR_CODE {
-            UsbUserSuccess = 0,
-            UsbUserNotSupported,
-            UsbUserInvalidRequestCode,
-            UsbUserFeatureDisabled,
-            UsbUserInvalidHeaderParameter,
-            UsbUserInvalidParameter,
-            UsbUserMiniportError,
-            UsbUserBufferTooSmall,
-            UsbUserErrorNotMapped,
-            UsbUserDeviceNotStarted,
-            UsbUserNoDeviceConnected
+            /// <summary>The user request succeeded.</summary>
+            UsbUserSuccess                  = 0,
+            /// <summary>The user request was not supported.</summary>
+            UsbUserNotSupported             = 1,
+            /// <summary>The user request code was invalid.</summary>
+            UsbUserInvalidRequestCode       = 2,
+            /// <summary>The feature that was specified by user request is disabled.</summary>
+            UsbUserFeatureDisabled          = 3,
+            /// <summary>The user request contains an invalid header parameter.</summary>
+            UsbUserInvalidHeaderParameter   = 4,
+            /// <summary>The user request contains an invalid parameter.</summary>
+            UsbUserInvalidParameter         = 5,
+            /// <summary>The user request failed because of a miniport driver error.</summary>
+            UsbUserMiniportError            = 6,
+            /// <summary>The user request failed because the data buffer was too small.</summary>
+            UsbUserBufferTooSmall           = 7,
+            /// <summary>The USB stack could not map the error to one of the errors that are listed in this enumeration.</summary>
+            UsbUserErrorNotMapped           = 8,
+            /// <summary>The device was not started.</summary>
+            UsbUserDeviceNotStarted         = 9,
+            /// <summary>The device was not connected.</summary>
+            UsbUserNoDeviceConnected        = 10,
         };
 
         public enum DEVICE_POWER_STATE {
@@ -559,38 +574,67 @@ namespace FluentUsbTreeView.PInvoke {
             [FieldOffset(52)]
             public SYSTEM_POWER_STATE   PD_DeepestSystemWake;
         }
-
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        /// <summary>The USB_CONTROLLER_INFO_0 structure is used with the IOCTL_USB_USER_REQUEST I/O control request to retrieve information about the USB host controller.</summary>
+		/// <remarks>The <b>USB_CONTROLLER_INFO_0</b> structure is used with the USBUSER_GET_CONTROLLER_INFO_0 user-mode request. For a description of this request, see <a href="https://docs.microsoft.com/windows/desktop/api/usbuser/ni-usbuser-ioctl_usb_user_request">IOCTL_USB_USER_REQUEST</a>.</remarks>
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
         public struct USB_CONTROLLER_INFO_0 {
-            public uint                     PciVendorId;
-            public uint                     PciDeviceId;
-            public uint                     PciRevision;
-            public uint                     NumberOfRootPorts;
-            public USB_CONTROLLER_FLAVOR    ControllerFlavor;
-            public uint                     HcFeatureFlags;
+            /// <summary>The vendor identifier that is associated with the host controller device.</summary>
+            public uint PciVendorId;
+
+            /// <summary>The device identifier that is associated with the host controller.</summary>
+            public uint PciDeviceId;
+
+            /// <summary>The revision number of the host controller device.</summary>
+            public uint PciRevision;
+
+            /// <summary>
+            /// <para>The number of root hub ports that the host controller has. <div class="alert"><b>Note</b>  In Windows 8, the USB 3.0 driver stack does not include the number of SuperSpeed hubs in the reported <b>NumberOfRootPorts</b> value.</div> <div> </div></para>
+            /// <para><see href="https://learn.microsoft.com/windows/win32/api/usbuser/ns-usbuser-usb_controller_info_0#members">Read more on docs.microsoft.com</see>.</para>
+            /// </summary>
+            public uint NumberOfRootPorts;
+
+            /// <summary>A <a href="https://docs.microsoft.com/windows-hardware/drivers/ddi/content/usb/ne-usb-_usb_controller_flavor">USB_CONTROLLER_FLAVOR</a>-typed enumerator  that specifies the type of controller.</summary>
+            public USB_CONTROLLER_FLAVOR ControllerFlavor;
+
+            /// <summary>
+            /// <para>A bitwise OR of some combination of the following host controller feature flags. </para>
+            /// <para>This doc was truncated.</para>
+            /// <para><see href="https://learn.microsoft.com/windows/win32/api/usbuser/ns-usbuser-usb_controller_info_0#members">Read more on docs.microsoft.com</see>.</para>
+            /// </summary>
+            public uint HcFeatureFlags;
         }
 
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        /// <summary>The USBUSER_REQUEST_HEADER structure is used with the IOCTL_USB_USER_REQUEST I/O control request to send a user-mode request to the USB host controller driver.</summary>
+		/// <remarks>The <b>USBUSER_REQUEST_HEADER</b> structure is used with the <a href="https://docs.microsoft.com/windows/desktop/api/usbuser/ni-usbuser-ioctl_usb_user_request">IOCTL_USB_USER_REQUEST</a> I/O control request to send a user-mode request to the USB port driver.</remarks>
+		[StructLayout(LayoutKind.Sequential, Pack = 1)]
         public struct USBUSER_REQUEST_HEADER {
+            /// <summary>The user-mode request. For a list and description of possible values for this member, see <a href="https://docs.microsoft.com/windows/desktop/api/usbuser/ni-usbuser-ioctl_usb_user_request">IOCTL_USB_USER_REQUEST</a>.</summary>
             public uint UsbUserRequest;
-            public USB_USER_ERROR_CODE UsbUserStatusCode;
-            public int RequestBufferLength;
-            public int ActualBufferLength;
-        };
 
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+            /// <summary>The status code that is returned by port driver.</summary>
+            public USB_USER_ERROR_CODE UsbUserStatusCode;
+
+            /// <summary>The size, in bytes, of the data buffer. The same buffer is used for both input and output.</summary>
+            public uint RequestBufferLength;
+
+            /// <summary>The size, in bytes, of the data that is retrieved by the request.</summary>
+            public uint ActualBufferLength;
+        }
+
+
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
         public struct USBUSER_POWER_INFO_REQUEST {
             public USBUSER_REQUEST_HEADER Header;
             public USB_POWER_INFO         PowerInformation;
         }
 
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
         public struct USBUSER_CONTROLLER_INFO_0 {
             public USBUSER_REQUEST_HEADER Header;
             public USB_CONTROLLER_INFO_0 Info0;
         }
 
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
         public struct USB_BANDWIDTH_INFO {
             public uint DeviceCount;
             public uint TotalBusBandwidth;
@@ -605,10 +649,111 @@ namespace FluentUsbTreeView.PInvoke {
             public uint AllocedInterrupt_32ms;
         }
 
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
         public struct USBUSER_BANDWIDTH_INFO_REQUEST {
             public USBUSER_REQUEST_HEADER Header;
             public USB_BANDWIDTH_INFO BandwidthInformation;
+        }
+
+        /// <summary>The USB_DRIVER_VERSION_PARAMETERS structure is used with the IOCTL_USB_USER_REQUEST I/O control request to retrieve version information.</summary>
+        /// <remarks>The <b>USB_DRIVER_VERSION_PARAMETERS</b> structure is used with the USBUSER_GET_USB_DRIVER_VERSION user-mode request. For a description of this request, see <a href="https://docs.microsoft.com/windows/desktop/api/usbuser/ni-usbuser-ioctl_usb_user_request">IOCTL_USB_USER_REQUEST</a>.</remarks>
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct USB_DRIVER_VERSION_PARAMETERS {
+            /// <summary>A tracking code that identifies the revision of the USB stack.</summary>
+            public uint DriverTrackingCode;
+
+            /// <summary>The version of the USB driver interface that the USB stack supports.</summary>
+            public uint USBDI_Version;
+
+            /// <summary>The version of the USB user interface that the USB stack supports.</summary>
+            public uint USBUSER_Version;
+
+            /// <summary>A Boolean value that indicates whether the checked version of the host controller driver is loaded. If <b>TRUE</b>, the checked version of the host controller driver is loaded. If <b>FALSE</b>, the checked version is not loaded.</summary>
+            public byte bCheckedPortDriver;
+
+            /// <summary>A Boolean value that indicates whether the checked version of the host controller miniport driver is loaded. If <b>TRUE</b>, the checked version of the host controller miniport driver is loaded. If <b>FALSE</b>, the checked version is not loaded.</summary>
+            public byte bCheckedMiniportDriver;
+
+            /// <summary>The USB version that the USB stack supports. A value of 0x0110 indicates that the USB stack supports version 1.1. A value of 0x0200 indicates the USB stack supports version 2.0.</summary>
+            public ushort USB_Version;
+        }
+
+        /// <summary>The USBUSER_GET_DRIVER_VERSION structure is used with the IOCTL_USB_USER_REQUEST I/O control request to read driver and interface version information.</summary>
+        /// <remarks>The <b>USBUSER_GET_DRIVER_VERSION</b> structure is used with the USBUSER_GET_USB_DRIVER_VERSION user-mode request. For more information about this request, see <a href="https://docs.microsoft.com/windows/desktop/api/usbuser/ni-usbuser-ioctl_usb_user_request">IOCTL_USB_USER_REQUEST</a>.</remarks>
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct USBUSER_GET_DRIVER_VERSION {
+            /// <summary>A <a href="https://docs.microsoft.com/windows/desktop/api/usbuser/ns-usbuser-usbuser_request_header">USBUSER_REQUEST_HEADER</a> structure that specifies the user-mode request on input to <a href="https://docs.microsoft.com/windows/desktop/api/usbuser/ni-usbuser-ioctl_usb_user_request">IOCTL_USB_USER_REQUEST</a> and provides buffer and status information on output.</summary>
+            public USBUSER_REQUEST_HEADER Header;
+
+            /// <summary>A <a href="https://docs.microsoft.com/windows/desktop/api/usbuser/ns-usbuser-usb_driver_version_parameters">USB_DRIVER_VERSION_PARAMETERS</a> structure that specifies the parameters that are associated with this request.</summary>
+            public USB_DRIVER_VERSION_PARAMETERS Parameters;
+        }
+
+        /// <summary>The USBUSER_BUS_STATISTICS_0_REQUEST structure is used with the IOCTL_USB_USER_REQUEST I/O control request to retrieve bus statistics.</summary>
+		/// <remarks>The <b>USBUSER_BUS_STATISTICS_0_REQUEST</b> structure is used with the USBUSER_GET_BUS_STATISTICS_0 user-mode request. For more information about this request, see <a href="https://docs.microsoft.com/windows/desktop/api/usbuser/ni-usbuser-ioctl_usb_user_request">IOCTL_USB_USER_REQUEST</a>.</remarks>
+		[StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct USBUSER_BUS_STATISTICS_0_REQUEST {
+            /// <summary>A <a href="https://docs.microsoft.com/windows/desktop/api/usbuser/ns-usbuser-usbuser_request_header">USBUSER_REQUEST_HEADER</a> structure that specifies the user-mode request on input to IOCTL_USB_USER_REQUEST and provides buffer and status information on output.</summary>
+            public USBUSER_REQUEST_HEADER Header;
+
+            /// <summary>A <a href="https://docs.microsoft.com/windows/desktop/api/usbuser/ns-usbuser-usb_bus_statistics_0">USB_BUS_STATISTICS_0</a> structure that reports bus statistics.</summary>
+            public USB_BUS_STATISTICS_0 BusStatistics0;
+        }
+
+        /// <summary>The USB_BUS_STATISTICS_0 structure is used with the IOCTL_USB_USER_REQUEST I/O control request to retrieve bus statistics.</summary>
+		/// <remarks>
+		/// <para>The <b>USB_BUS_STATISTICS_0</b> structure is used with the <a href="https://docs.microsoft.com/windows/desktop/api/usbuser/ns-usbuser-usbuser_bus_statistics_0_request">USBUSER_BUS_STATISTICS_0</a> user-mode request. For a description of this request, see <a href="https://docs.microsoft.com/windows/desktop/api/usbuser/ni-usbuser-ioctl_usb_user_request">IOCTL_USB_USER_REQUEST</a>. In Windows 8, this request completes successfully. However, the values retrieved from the underlying USB 3.0 driver stack do not reflect actual  bus statistics.</para>
+		/// <para><see href="https://learn.microsoft.com/windows/win32/api/usbuser/ns-usbuser-usb_bus_statistics_0#">Read more on docs.microsoft.com</see>.</para>
+		/// </remarks>
+		[StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct USB_BUS_STATISTICS_0 {
+            /// <summary>The number of devices on the bus.</summary>
+            public uint DeviceCount;
+
+            /// <summary>The current system time.</summary>
+            public long CurrentSystemTime;
+
+            /// <summary>The number of the current USB frame.</summary>
+            public uint CurrentUsbFrame;
+
+            /// <summary>The amount, in bytes, of bulk transfer data.</summary>
+            public uint BulkBytes;
+
+            /// <summary>The amount, in bytes, of isochronous data.</summary>
+            public uint IsoBytes;
+
+            /// <summary>The amount, in bytes, of interrupt data.</summary>
+            public uint InterruptBytes;
+
+            /// <summary>The amount, in bytes, of control data.</summary>
+            public uint ControlDataBytes;
+
+            /// <summary>The amount, in bytes, of interrupt data.</summary>
+            public uint PciInterruptCount;
+
+            /// <summary>The number of hard bus resets that have occurred.</summary>
+            public uint HardResetCount;
+
+            /// <summary>The number of times that a worker thread has signaled completion of a task.</summary>
+            public uint WorkerSignalCount;
+
+            /// <summary>The number of bytes that are transferred by common buffer.</summary>
+            public uint CommonBufferBytes;
+
+            /// <summary>The amount of time, in milliseconds, that worker threads have been idle.</summary>
+            public uint WorkerIdleTimeMs;
+
+            /// <summary>A Boolean value that indicates whether the root hub is enabled. If <b>TRUE</b>, he root hub is enabled. If <b>FALSE</b>, the root hub is disabled.</summary>
+            public byte RootHubEnabled;
+
+            /// <summary></summary>
+            public byte RootHubDevicePowerState;
+
+            /// <summary>If this member is 1, the bus is active. If 0, the bus is inactive.</summary>
+            public byte Unused;
+
+            /// <summary>The index that is used to generate a symbolic link name for the hub PDO. This format of the symbolic link is USBPDO-<i>n</i>, where <i>n</i> is the value in <b>NameIndex</b>.</summary>
+            public byte NameIndex;
         }
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]

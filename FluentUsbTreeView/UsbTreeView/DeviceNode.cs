@@ -453,7 +453,7 @@ namespace FluentUsbTreeView.UsbTreeView {
             USB_CYCLE_PORT_PARAMS CyclePortParams = new USB_CYCLE_PORT_PARAMS() { ConnectionIndex = PortNumber, StatusReturned = 0 }; // in and out
 
             int dwBytes;
-            bool res = Kernel32.DeviceIoControl(hHub, Kernel32.IOCTL_USB_HUB_CYCLE_PORT,
+            bool res = Kernel32.DeviceIoControl(hHub, IOCTL.IOCTL_USB_HUB_CYCLE_PORT,
                                                 &CyclePortParams, Marshal.SizeOf(typeof(USB_CYCLE_PORT_PARAMS)),
                                                 &CyclePortParams, Marshal.SizeOf(typeof(USB_CYCLE_PORT_PARAMS)),
                                                 &dwBytes, IntPtr.Zero);

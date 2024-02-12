@@ -141,6 +141,7 @@
     <Compile Include="UsbTreeView\PInvoke\CfgMgr32.cs" />
     <Compile Include="UsbTreeView\PInvoke\DeviceManaged.cs" />
     <Compile Include="UsbTreeView\PInvoke\Devpkey.cs" />
+    <Compile Include="UsbTreeView\PInvoke\IOCTL.cs" />
     <Compile Include="UsbTreeView\PInvoke\Kernel32.cs" />
     <Compile Include="UsbTreeView\PInvoke\NativeUtils.cs" />
     <Compile Include="UsbTreeView\PInvoke\SetupApi.cs" />

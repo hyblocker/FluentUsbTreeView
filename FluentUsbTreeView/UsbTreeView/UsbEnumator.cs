@@ -228,6 +228,20 @@ namespace FluentUsbTreeView.UsbTreeView {
                 HandleNativeFailure();
             }
 
+            // Get the USB Host Controller Bus statistics
+            dwSuccess = GetHostControllerBusStatistics(hHCDev, ref hcInfo);
+
+            if ( Kernel32.ERROR_SUCCESS != dwSuccess ) {
+                HandleNativeFailure();
+            }
+
+            // Get the USB Host Controller Driver Version parameters
+            dwSuccess = GetHostControllerDriverVersionParams(hHCDev, ref hcInfo);
+
+            if ( Kernel32.ERROR_SUCCESS != dwSuccess ) {
+                HandleNativeFailure();
+            }
+
             // Get the USB Host Controller bandwidth info
             dwSuccess = GetHostControllerBandwidth(hHCDev, ref hcInfo);
             if ( Kernel32.ERROR_SUCCESS != dwSuccess ) {
@@ -347,7 +361,7 @@ namespace FluentUsbTreeView.UsbTreeView {
             // Now query USBHUB for the USB_NODE_INFORMATION structure for this hub.
             // This will tell us the number of downstream ports to enumerate, among
             // other things.
-            success = Kernel32.DeviceIoControl(hHubDevice, Kernel32.IOCTL_USB_GET_NODE_INFORMATION, ref hubInfo, Marshal.SizeOf(typeof(USB_NODE_INFORMATION)), out hubInfo, Marshal.SizeOf(typeof(USB_NODE_INFORMATION)), out nBytes, IntPtr.Zero);
+            success = Kernel32.DeviceIoControl(hHubDevice, IOCTL.IOCTL_USB_GET_NODE_INFORMATION, ref hubInfo, Marshal.SizeOf(typeof(USB_NODE_INFORMATION)), out hubInfo, Marshal.SizeOf(typeof(USB_NODE_INFORMATION)), out nBytes, IntPtr.Zero);
 
             if ( !success ) {
                 HandleNativeFailure();
@@ -355,7 +369,7 @@ namespace FluentUsbTreeView.UsbTreeView {
             }
             info.HubInfo = hubInfo;
 
-            success = Kernel32.DeviceIoControl(hHubDevice, Kernel32.IOCTL_USB_GET_HUB_INFORMATION_EX, ref hubInfoEx, Marshal.SizeOf(typeof(USB_HUB_INFORMATION_EX)), out hubInfoEx, Marshal.SizeOf(typeof(USB_HUB_INFORMATION_EX)), out nBytes, IntPtr.Zero);
+            success = Kernel32.DeviceIoControl(hHubDevice, IOCTL.IOCTL_USB_GET_HUB_INFORMATION_EX, ref hubInfoEx, Marshal.SizeOf(typeof(USB_HUB_INFORMATION_EX)), out hubInfoEx, Marshal.SizeOf(typeof(USB_HUB_INFORMATION_EX)), out nBytes, IntPtr.Zero);
 
             info.HubInfoEx = hubInfoEx;
 
@@ -365,7 +379,7 @@ namespace FluentUsbTreeView.UsbTreeView {
             }
 
             // Obtain Hub Capabilities
-            success = Kernel32.DeviceIoControl(hHubDevice, Kernel32.IOCTL_USB_GET_HUB_CAPABILITIES_EX, ref hubCapabilityEx, Marshal.SizeOf(typeof(USB_HUB_CAPABILITIES_EX)), out hubCapabilityEx, Marshal.SizeOf(typeof(USB_HUB_CAPABILITIES_EX)), out nBytes, IntPtr.Zero);
+            success = Kernel32.DeviceIoControl(hHubDevice, IOCTL.IOCTL_USB_GET_HUB_CAPABILITIES_EX, ref hubCapabilityEx, Marshal.SizeOf(typeof(USB_HUB_CAPABILITIES_EX)), out hubCapabilityEx, Marshal.SizeOf(typeof(USB_HUB_CAPABILITIES_EX)), out nBytes, IntPtr.Zero);
 
             info.HubCapabilityEx = hubCapabilityEx;
             // Fail gracefully
@@ -514,7 +528,7 @@ namespace FluentUsbTreeView.UsbTreeView {
                 portConnectorProps.ConnectionIndex = index;
 
                 success = Kernel32.DeviceIoControl(hHubDevice,
-                                          Kernel32.IOCTL_USB_GET_PORT_CONNECTOR_PROPERTIES,
+                                          IOCTL.IOCTL_USB_GET_PORT_CONNECTOR_PROPERTIES,
                                           &portConnectorProps,
                                           Marshal.SizeOf(typeof(USB_PORT_CONNECTOR_PROPERTIES)),
                                           &portConnectorProps,
@@ -534,7 +548,7 @@ namespace FluentUsbTreeView.UsbTreeView {
                         ( (USB_PORT_CONNECTOR_PROPERTIES*) portConnectorPtr )->ConnectionIndex = index;
                 
                         success = Kernel32.DeviceIoControl(hHubDevice,
-                                                  Kernel32.IOCTL_USB_GET_PORT_CONNECTOR_PROPERTIES,
+                                                  IOCTL.IOCTL_USB_GET_PORT_CONNECTOR_PROPERTIES,
                                                   portConnectorPtr,
                                                   portConnectorProps.ActualLength,
                                                   portConnectorPtr,
@@ -562,7 +576,7 @@ namespace FluentUsbTreeView.UsbTreeView {
                 connectionInfoExV2.SupportedUsbProtocols = USB_PROTOCOLS.Usb300;
 
                 success = Kernel32.DeviceIoControl(hHubDevice,
-                                          Kernel32.IOCTL_USB_GET_NODE_CONNECTION_INFORMATION_EX_V2,
+                                          IOCTL.IOCTL_USB_GET_NODE_CONNECTION_INFORMATION_EX_V2,
                                           &connectionInfoExV2,
                                           Marshal.SizeOf(typeof(USB_NODE_CONNECTION_INFORMATION_EX_V2)),
                                           &connectionInfoExV2,
@@ -579,7 +593,7 @@ namespace FluentUsbTreeView.UsbTreeView {
                 connectionInfoEx.ConnectionIndex = index;
 
                 success = Kernel32.DeviceIoControl(hHubDevice,
-                                          Kernel32.IOCTL_USB_GET_NODE_CONNECTION_INFORMATION_EX,
+                                          IOCTL.IOCTL_USB_GET_NODE_CONNECTION_INFORMATION_EX,
                                           ref connectionInfoEx,
                                           nBytesEx,
                                           out connectionInfoEx,
@@ -620,8 +634,8 @@ namespace FluentUsbTreeView.UsbTreeView {
 
                     connectionInfo.ConnectionIndex = index;
 
-                    success = Kernel32.DeviceIoControl(hHubDevice, 
-                                              Kernel32.IOCTL_USB_GET_NODE_CONNECTION_INFORMATION, 
+                    success = Kernel32.DeviceIoControl(hHubDevice,
+                                              IOCTL.IOCTL_USB_GET_NODE_CONNECTION_INFORMATION, 
                                               &connectionInfo, 
                                               nBytes, 
                                               &connectionInfo, 
@@ -895,7 +909,7 @@ namespace FluentUsbTreeView.UsbTreeView {
             nBytes = Marshal.SizeOf(extHubName);
             IntPtr ptrNodeName = Marshal.AllocHGlobal(nBytes);
             Marshal.StructureToPtr(extHubName, ptrNodeName, true);
-            success = Kernel32.DeviceIoControl(Hub, Kernel32.IOCTL_USB_GET_NODE_CONNECTION_NAME, ptrNodeName, nBytes, ptrNodeName, nBytes, out nBytes, IntPtr.Zero);
+            success = Kernel32.DeviceIoControl(Hub, IOCTL.IOCTL_USB_GET_NODE_CONNECTION_NAME, ptrNodeName, nBytes, ptrNodeName, nBytes, out nBytes, IntPtr.Zero);
 
             if ( !success ) {
                 HandleNativeFailure();
@@ -928,7 +942,7 @@ namespace FluentUsbTreeView.UsbTreeView {
             for ( ; nPowerState <= ( int ) WDMUSB_POWER_STATE.SystemShutdown; nIndex++, nPowerState++ ) {
                 // set the header and request sizes
                 UsbPowerInfoRequest.Header.UsbUserRequest = UsbApi.USBUSER_GET_POWER_STATE_MAP;
-                UsbPowerInfoRequest.Header.RequestBufferLength = Marshal.SizeOf(UsbPowerInfoRequest);
+                UsbPowerInfoRequest.Header.RequestBufferLength = ( uint ) Marshal.SizeOf(UsbPowerInfoRequest);
                 UsbPowerInfoRequest.PowerInformation.SystemState = (WDMUSB_POWER_STATE) nPowerState;
 
                 // Now query USBHUB for the USB_POWER_INFO structure for this hub.
@@ -940,7 +954,7 @@ namespace FluentUsbTreeView.UsbTreeView {
                 // UsbPowerInfoRequest = ( USBUSER_POWER_INFO_REQUEST ) Marshal.PtrToStructure(UsbPowerInfoRequestPtr, typeof(USBUSER_POWER_INFO_REQUEST));
                 // Marshal.FreeHGlobal(UsbPowerInfoRequestPtr);
                 // UsbPowerInfoRequestPtr = IntPtr.Zero;
-                bSuccess = Kernel32.DeviceIoControl(hHCDev, Kernel32.IOCTL_USB_USER_REQUEST, &UsbPowerInfoRequest, sizeOfPowerRequest, &UsbPowerInfoRequest, sizeOfPowerRequest, &dwBytes, IntPtr.Zero);
+                bSuccess = Kernel32.DeviceIoControl(hHCDev, IOCTL.IOCTL_USB_USER_REQUEST, &UsbPowerInfoRequest, sizeOfPowerRequest, &UsbPowerInfoRequest, sizeOfPowerRequest, &dwBytes, IntPtr.Zero);
 
                 if ( !bSuccess ) {
                     dwError = Marshal.GetLastWin32Error();
@@ -954,31 +968,83 @@ namespace FluentUsbTreeView.UsbTreeView {
             return dwError;
         }
 
-        private static int GetHostControllerInfo(IntPtr hHCDev, ref UsbHostControllerInfo hcInfo) {
+        private static unsafe int GetHostControllerInfo(IntPtr hHCDev, ref UsbHostControllerInfo hcInfo) {
             USBUSER_CONTROLLER_INFO_0 UsbControllerInfo = new USBUSER_CONTROLLER_INFO_0();
             int                        dwError = 0;
             int                        dwBytes = 0;
             bool                       bSuccess = false;
 
-            // set the header and request sizes
-            UsbControllerInfo.Header.UsbUserRequest = UsbApi.USBUSER_GET_CONTROLLER_INFO_0;
-            UsbControllerInfo.Header.RequestBufferLength = Marshal.SizeOf(UsbControllerInfo);
+            UsbControllerInfo.Header.UsbUserRequest         = USBUSER_GET_CONTROLLER_INFO_0;
+            UsbControllerInfo.Header.RequestBufferLength    = ( uint ) sizeof(USBUSER_CONTROLLER_INFO_0);
 
-            // Query for the USB_CONTROLLER_INFO_0 structure
-            int sizeUsbControllerInfo = Marshal.SizeOf(typeof(USBUSER_CONTROLLER_INFO_0));
-            // IntPtr UsbControllerInfoPtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(USBUSER_CONTROLLER_INFO_0)));
-            // Marshal.StructureToPtr(UsbControllerInfo, UsbControllerInfoPtr, false);
-            // bSuccess = Kernel32.DeviceIoControl(hHCDev, Kernel32.IOCTL_USB_USER_REQUEST, UsbControllerInfoPtr, sizeUsbControllerInfo, UsbControllerInfoPtr, sizeUsbControllerInfo, out dwBytes, IntPtr.Zero);
-            // UsbControllerInfo = ( USBUSER_CONTROLLER_INFO_0 ) Marshal.PtrToStructure(UsbControllerInfoPtr, typeof(USBUSER_CONTROLLER_INFO_0));
-            // Marshal.FreeHGlobal(UsbControllerInfoPtr);
-            // UsbControllerInfoPtr = IntPtr.Zero;
-            bSuccess = Kernel32.DeviceIoControl(hHCDev, Kernel32.IOCTL_USB_USER_REQUEST, ref UsbControllerInfo, sizeUsbControllerInfo, out UsbControllerInfo, sizeUsbControllerInfo, out dwBytes, IntPtr.Zero);
+            bSuccess = Kernel32.DeviceIoControl(hHCDev,
+                                    IOCTL.IOCTL_USB_USER_REQUEST,
+                                    &UsbControllerInfo,
+                                    sizeof(USBUSER_CONTROLLER_INFO_0),
+                                    &UsbControllerInfo,
+                                    sizeof(USBUSER_CONTROLLER_INFO_0),
+                                    &dwBytes,
+                                    IntPtr.Zero);
 
             if ( !bSuccess ) {
                 dwError = Marshal.GetLastWin32Error();
                 HandleNativeFailure();
             } else {
                 hcInfo.ControllerInfo = UsbControllerInfo.Info0.Clone();
+            }
+            return dwError;
+        }
+
+        private static unsafe int GetHostControllerBusStatistics(IntPtr hHCDev, ref UsbHostControllerInfo hcInfo) {
+            USBUSER_BUS_STATISTICS_0_REQUEST UsbBusStatistics = new USBUSER_BUS_STATISTICS_0_REQUEST();
+            int                        dwError = 0;
+            int                        dwBytes = 0;
+            bool                       bSuccess = false;
+
+            UsbBusStatistics.Header.UsbUserRequest = USBUSER_GET_BUS_STATISTICS_0;
+            UsbBusStatistics.Header.RequestBufferLength = ( uint ) sizeof(USBUSER_BUS_STATISTICS_0_REQUEST);
+
+            bSuccess = Kernel32.DeviceIoControl(hHCDev,
+                                    IOCTL.IOCTL_USB_USER_REQUEST,
+                                    &UsbBusStatistics,
+                                    sizeof(USBUSER_BUS_STATISTICS_0_REQUEST),
+                                    &UsbBusStatistics,
+                                    sizeof(USBUSER_BUS_STATISTICS_0_REQUEST),
+                                    &dwBytes,
+                                    IntPtr.Zero);
+
+            if ( !bSuccess ) {
+                dwError = Marshal.GetLastWin32Error();
+                HandleNativeFailure();
+            } else {
+                hcInfo.BusStatistics = UsbBusStatistics.BusStatistics0.Clone();
+            }
+            return dwError;
+        }
+
+        private static unsafe int GetHostControllerDriverVersionParams(IntPtr hHCDev, ref UsbHostControllerInfo hcInfo) {
+            USBUSER_GET_DRIVER_VERSION UsbGetDriverVersion = new USBUSER_GET_DRIVER_VERSION();
+            int                        dwError = 0;
+            int                        dwBytes = 0;
+            bool                       bSuccess = false;
+
+            UsbGetDriverVersion.Header.UsbUserRequest = USBUSER_GET_USB_DRIVER_VERSION;
+            UsbGetDriverVersion.Header.RequestBufferLength = ( uint ) sizeof(USBUSER_GET_DRIVER_VERSION);
+
+            bSuccess = Kernel32.DeviceIoControl(hHCDev,
+                                    IOCTL.IOCTL_USB_USER_REQUEST,
+                                    &UsbGetDriverVersion,
+                                    sizeof(USBUSER_GET_DRIVER_VERSION),
+                                    &UsbGetDriverVersion,
+                                    sizeof(USBUSER_GET_DRIVER_VERSION),
+                                    &dwBytes,
+                                    IntPtr.Zero);
+
+            if ( !bSuccess ) {
+                dwError = Marshal.GetLastWin32Error();
+                HandleNativeFailure();
+            } else {
+                hcInfo.DriverVersionParams = UsbGetDriverVersion.Parameters.Clone();
             }
             return dwError;
         }
@@ -991,13 +1057,13 @@ namespace FluentUsbTreeView.UsbTreeView {
 
             // set the header and request sizes
             UsbBandInfoRequest.Header.UsbUserRequest = UsbApi.USBUSER_GET_BANDWIDTH_INFORMATION;
-            UsbBandInfoRequest.Header.RequestBufferLength = Marshal.SizeOf(UsbBandInfoRequest);
+            UsbBandInfoRequest.Header.RequestBufferLength = ( uint ) Marshal.SizeOf(UsbBandInfoRequest);
 
             // Query for the USBUSER_BANDWIDTH_INFO_REQUEST structure
             int sizeUsbControllerInfo = Marshal.SizeOf(typeof(USBUSER_BANDWIDTH_INFO_REQUEST));
             IntPtr UsbControllerInfoPtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(USBUSER_BANDWIDTH_INFO_REQUEST)));
             Marshal.StructureToPtr(UsbBandInfoRequest, UsbControllerInfoPtr, false);
-            bSuccess = Kernel32.DeviceIoControl(hHCDev, Kernel32.IOCTL_USB_USER_REQUEST, UsbControllerInfoPtr, sizeUsbControllerInfo, UsbControllerInfoPtr, sizeUsbControllerInfo, out dwBytes, IntPtr.Zero);
+            bSuccess = Kernel32.DeviceIoControl(hHCDev, IOCTL.IOCTL_USB_USER_REQUEST, UsbControllerInfoPtr, sizeUsbControllerInfo, UsbControllerInfoPtr, sizeUsbControllerInfo, out dwBytes, IntPtr.Zero);
             UsbBandInfoRequest = ( USBUSER_BANDWIDTH_INFO_REQUEST ) Marshal.PtrToStructure(UsbControllerInfoPtr, typeof(USBUSER_BANDWIDTH_INFO_REQUEST));
             Marshal.FreeHGlobal(UsbControllerInfoPtr);
             UsbControllerInfoPtr = IntPtr.Zero;
@@ -1060,7 +1126,7 @@ namespace FluentUsbTreeView.UsbTreeView {
             int rootHubNameSize = Marshal.SizeOf(typeof(USB_ROOT_HUB_NAME));
             IntPtr rootHubNamePtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(USB_ROOT_HUB_NAME)));
             Marshal.StructureToPtr(rootHubName, rootHubNamePtr, false);
-            success = Kernel32.DeviceIoControl(HostController, Kernel32.IOCTL_USB_GET_ROOT_HUB_NAME, rootHubNamePtr, rootHubNameSize, rootHubNamePtr, rootHubNameSize, out nBytes, IntPtr.Zero);
+            success = Kernel32.DeviceIoControl(HostController, IOCTL.IOCTL_USB_GET_ROOT_HUB_NAME, rootHubNamePtr, rootHubNameSize, rootHubNamePtr, rootHubNameSize, out nBytes, IntPtr.Zero);
             rootHubName = ( USB_ROOT_HUB_NAME ) Marshal.PtrToStructure(rootHubNamePtr, typeof(USB_ROOT_HUB_NAME));
             Marshal.FreeHGlobal(rootHubNamePtr);
             rootHubNamePtr = IntPtr.Zero;
@@ -1085,7 +1151,7 @@ namespace FluentUsbTreeView.UsbTreeView {
             // rootHubNameW = ( USB_ROOT_HUB_NAME ) Marshal.PtrToStructure(rootHubNameWPtr, typeof(USB_ROOT_HUB_NAME));
             // Marshal.FreeHGlobal(rootHubNameWPtr);
             // rootHubNameWPtr = IntPtr.Zero;
-            success = Kernel32.DeviceIoControl(HostController, Kernel32.IOCTL_USB_GET_ROOT_HUB_NAME, ref rootHubNameW, nBytes, out rootHubNameW, nBytes, out nBytes, IntPtr.Zero);
+            success = Kernel32.DeviceIoControl(HostController, IOCTL.IOCTL_USB_GET_ROOT_HUB_NAME, ref rootHubNameW, nBytes, out rootHubNameW, nBytes, out nBytes, IntPtr.Zero);
 
             if ( !success ) {
                 HandleNativeFailure();
@@ -1109,7 +1175,7 @@ namespace FluentUsbTreeView.UsbTreeView {
             // driverKeyName = (USB_HCD_DRIVERKEY_NAME) Marshal.PtrToStructure(driverKeyNamePtr, typeof(USB_HCD_DRIVERKEY_NAME));
             // Marshal.FreeHGlobal(driverKeyNamePtr);
             // driverKeyNamePtr = IntPtr.Zero;
-            success = Kernel32.DeviceIoControl(HCD, Kernel32.IOCTL_GET_HCD_DRIVERKEY_NAME, ref driverKeyName, driverKeyNameSize, out driverKeyName, driverKeyNameSize, out nBytes, IntPtr.Zero);
+            success = Kernel32.DeviceIoControl(HCD, IOCTL.IOCTL_GET_HCD_DRIVERKEY_NAME, ref driverKeyName, driverKeyNameSize, out driverKeyName, driverKeyNameSize, out nBytes, IntPtr.Zero);
 
             if ( !success ) {
                 HandleNativeFailure();
@@ -1131,7 +1197,7 @@ namespace FluentUsbTreeView.UsbTreeView {
             // driverKeyNameW = ( USB_HCD_DRIVERKEY_NAME ) Marshal.PtrToStructure(driverKeyNameWPtr, typeof(USB_HCD_DRIVERKEY_NAME));
             // Marshal.FreeHGlobal(driverKeyNameWPtr);
             // driverKeyNameWPtr = IntPtr.Zero;
-            success = Kernel32.DeviceIoControl(HCD, Kernel32.IOCTL_GET_HCD_DRIVERKEY_NAME, ref driverKeyNameW, nBytes, out driverKeyNameW, nBytes, out nBytes, IntPtr.Zero);
+            success = Kernel32.DeviceIoControl(HCD, IOCTL.IOCTL_GET_HCD_DRIVERKEY_NAME, ref driverKeyNameW, nBytes, out driverKeyNameW, nBytes, out nBytes, IntPtr.Zero);
 
             if ( !success ) {
                 HandleNativeFailure();
@@ -1153,7 +1219,7 @@ namespace FluentUsbTreeView.UsbTreeView {
             // IntPtr ptrDriverKey = Marshal.AllocHGlobal(nBytes);
             // Marshal.StructureToPtr(driverKeyName, ptrDriverKey, true);
             // success = Kernel32.DeviceIoControl(HCD, Kernel32.IOCTL_USB_GET_NODE_CONNECTION_DRIVERKEY_NAME, ptrDriverKey, nBytes, ptrDriverKey, nBytes, out nBytesReturned, IntPtr.Zero);
-            success = Kernel32.DeviceIoControl(HCD, Kernel32.IOCTL_USB_GET_NODE_CONNECTION_DRIVERKEY_NAME, &driverKeyName, nBytes, &driverKeyName, nBytes, &nBytesReturned, IntPtr.Zero);
+            success = Kernel32.DeviceIoControl(HCD, IOCTL.IOCTL_USB_GET_NODE_CONNECTION_DRIVERKEY_NAME, &driverKeyName, nBytes, &driverKeyName, nBytes, &nBytesReturned, IntPtr.Zero);
             
             // handle failure
             if ( !success ) {
@@ -1168,7 +1234,7 @@ namespace FluentUsbTreeView.UsbTreeView {
             };
             IntPtr ptrDriverKey = Marshal.AllocHGlobal(nBytes);
             Marshal.StructureToPtr(driverKeyName, ptrDriverKey, true);
-            success = Kernel32.DeviceIoControl(HCD, Kernel32.IOCTL_USB_GET_NODE_CONNECTION_DRIVERKEY_NAME, ptrDriverKey, nBytes, ptrDriverKey, nBytes, out nBytesReturned, IntPtr.Zero);
+            success = Kernel32.DeviceIoControl(HCD, IOCTL.IOCTL_USB_GET_NODE_CONNECTION_DRIVERKEY_NAME, ptrDriverKey, nBytes, ptrDriverKey, nBytes, out nBytesReturned, IntPtr.Zero);
             // success = Kernel32.DeviceIoControl(HCD, Kernel32.IOCTL_USB_GET_NODE_CONNECTION_DRIVERKEY_NAME, &driverKeyName, nBytes, &driverKeyName, nBytes, &nBytesReturned, IntPtr.Zero);
 
             // handle failure
@@ -2372,7 +2438,7 @@ namespace FluentUsbTreeView.UsbTreeView {
             Marshal.StructureToPtr(Request, ptrRequest, true);
 
             // Use an IOCTL call to request the String Descriptor
-            if ( Kernel32.DeviceIoControl(hDevice, Kernel32.IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION, ptrRequest, nBytes, ptrRequest, nBytes, out nBytesReturned, IntPtr.Zero) ) {
+            if ( Kernel32.DeviceIoControl(hDevice, IOCTL.IOCTL_USB_GET_DESCRIPTOR_FROM_NODE_CONNECTION, ptrRequest, nBytes, ptrRequest, nBytes, out nBytesReturned, IntPtr.Zero) ) {
                 // The location of the string descriptor is immediately after
                 // the Request structure.  Because this location is not "covered"
                 // by the structure allocation, we're forced to zero out this
