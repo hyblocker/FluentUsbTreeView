@@ -149,6 +149,7 @@
     <Compile Include="UsbTreeView\PInvoke\User32.cs" />
     <Compile Include="UsbTreeView\PInvoke\WinApiGuids.cs" />
     <Compile Include="UsbTreeView\PInvoke\WindowsTools.cs" />
+    <Compile Include="UsbTreeView\PInvoke\Winsvc.cs" />
     <Compile Include="UsbTreeView\Settings.cs" />
     <Compile Include="UsbTreeView\Ui\DetailViewDataGenerator.cs" />
     <Compile Include="UsbTreeView\Ui\DeviceNameUtil.cs" />

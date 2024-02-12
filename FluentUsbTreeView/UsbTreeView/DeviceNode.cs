@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using static FluentUsbTreeView.PInvoke.CfgMgr32;
 using static FluentUsbTreeView.PInvoke.UsbApi;
 using static FluentUsbTreeView.PInvoke.WindowsTools;
+using static FluentUsbTreeView.PInvoke.Winsvc;
 using FILETIME = System.Runtime.InteropServices.ComTypes.FILETIME;
 
 namespace FluentUsbTreeView.UsbTreeView {
@@ -310,17 +311,17 @@ namespace FluentUsbTreeView.UsbTreeView {
             UsbEnumator.GetDevicePropertyString(deviceInfoData.DevInst, CM_DRP.CM_DRP_FRIENDLYNAME, out DevProps.FriendlyName);
             UsbEnumator.GetDevicePropertyString(deviceInfoData.DevInst, CM_DRP.CM_DRP_MFG, out DevProps.Manufacturer);
 
-            UsbEnumator.GetDevicePropertyString(deviceInfoData.DevInst, Devpkey.DEVPKEY_Device_PhysicalDeviceLocation, out DevProps.Kernel);
+            UsbEnumator.GetDevicePropertyString(deviceInfoData.DevInst, CM_DRP.CM_DRP_PHYSICAL_DEVICE_OBJECT_NAME, out DevProps.Kernel);
 
-            UsbEnumator.GetDevicePropertyString(deviceInfoData.DevInst, CM_DRP.CM_DRP_DRIVER, out DevProps.Driver);
+            // Get a more representative driver variable:
+            GetServicePath(DevProps.Service, out DevProps.Driver);
             UsbEnumator.GetDevicePropertyString(deviceInfoData.DevInst, Devpkey.DEVPKEY_Device_DriverInfPath, out DevProps.DriverInf);
             UsbEnumator.GetDevicePropertyString(deviceInfoData.DevInst, Devpkey.DEVPKEY_Device_DriverVersion, out DevProps.DriverVersion);
-            UsbEnumator.GetDevicePropertyString(deviceInfoData.DevInst, Devpkey.DEVPKEY_Device_DriverDesc, out DevProps.DriverCompany);
+            UsbEnumator.GetDevicePropertyString(deviceInfoData.DevInst, Devpkey.DEVPKEY_Device_DriverProvider, out DevProps.DriverCompany);
             FILETIME driverDate;
             UsbEnumator.GetDevicePropertyFileTime(deviceInfoData.DevInst, Devpkey.DEVPKEY_Device_DriverDate, out driverDate);
             LargeIntegerStruct driverU64S = new LargeIntegerStruct() { HighPart = driverDate.dwHighDateTime, LowPart = (uint)driverDate.dwLowDateTime };
             DevProps.DriverDate = driverU64S.ToDateTime();
-            // UsbEnumator.GetDeviceProperty(deviceInfoData.DevInst, CM_DRP.CM_DRP_LOCATION_PATHS, out DevProps.LocationPaths);
 
             // Extract VEN, DEV, SUBSYS, REV from the device instance id
             // NOTE: ven = USB VID ; dev = USB PID, SUBSYS and REV are 0 on USB
@@ -363,6 +364,70 @@ namespace FluentUsbTreeView.UsbTreeView {
             }
 
             return DevProps;
+        }
+
+        public static unsafe bool GetServicePath(string serviceName, out string servicePath) {
+
+            // Use ServiceManager API to convert from service name to service path
+            IntPtr hService;
+            uint dwBytesNeeded, cbBufSize = 0;
+            int dwError;
+            servicePath = null;
+
+
+            IntPtr hSCManager = OpenSCManager(IntPtr.Zero, IntPtr.Zero, Winsvc.SC_MANAGER_ACCESS_RIGHTS.SC_MANAGER_ENUMERATE_SERVICE);
+            if ( hSCManager == IntPtr.Zero ) {
+                Logger.Error($"OpenSCManager failed ({Marshal.GetLastWin32Error()})");
+                return false;
+            }
+
+            // Open a handle to the service.
+            hService = Winsvc.OpenService(hSCManager, serviceName, Winsvc.SERVICE_ACCESS_RIGHTS.SERVICE_QUERY_CONFIG);
+
+            if ( hService == IntPtr.Zero ) {
+                // printf("OpenService failed (%d)\n", GetLastError());
+                Logger.Error($"OpenService failed ({Marshal.GetLastWin32Error()})");
+                Winsvc.CloseServiceHandle(hSCManager);
+                return false;
+            }
+
+            // Determine how much memory we should allocate for this call
+            if ( !QueryServiceConfig(hService, IntPtr.Zero, 0, &dwBytesNeeded) ) {
+                dwError = Marshal.GetLastWin32Error();
+                if ( Kernel32.ERROR_INSUFFICIENT_BUFFER == dwError ) {
+                    cbBufSize = dwBytesNeeded;
+                    // lpsc = ( QUERY_SERVICE_CONFIG* ) LocalAlloc(LMEM_FIXED, cbBufSize);
+                } else {
+                    Logger.Error($"QueryServiceConfig failed ({Marshal.GetLastWin32Error()})");
+                    Winsvc.CloseServiceHandle(hService);
+                    Winsvc.CloseServiceHandle(hSCManager);
+                    return false;
+                }
+            }
+
+
+            // Allocate a buffer for the configuration information.
+            IntPtr buffer = Marshal.AllocHGlobal( ( int ) cbBufSize);
+
+            if ( !QueryServiceConfig(hService, buffer, cbBufSize, &dwBytesNeeded) ) {
+                Logger.Error($"QueryServiceConfig failed ({Marshal.GetLastWin32Error()})");
+                Marshal.FreeHGlobal(buffer);
+                Winsvc.CloseServiceHandle(hService);
+                Winsvc.CloseServiceHandle(hSCManager);
+                return false;
+            }
+
+            QUERY_SERVICE_CONFIG service = new QUERY_SERVICE_CONFIG();
+            Marshal.PtrToStructure(buffer, service);
+
+            servicePath = new string(service.lpBinaryPathName);
+
+            // Cleanup
+            Marshal.FreeHGlobal(buffer);
+            Winsvc.CloseServiceHandle(hService);
+            Winsvc.CloseServiceHandle(hSCManager);
+
+            return true;
         }
 
         // https://www.codeproject.com/Articles/5363023/How-to-restart-a-USB-port
