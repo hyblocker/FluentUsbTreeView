@@ -134,8 +134,10 @@ namespace FluentUsbTreeView {
         public ushort                                   BusDevice;
         public ushort                                   BusFunction;
         public UsbApi.USB_CONTROLLER_INFO_0             ControllerInfo;
+        public UsbApi.USB_BUS_STATISTICS_0              BusStatistics;
         public string                                   SymbolicLink;
         public UsbApi.USB_BANDWIDTH_INFO                BandwidthInfo;
+        public UsbApi.USB_DRIVER_VERSION_PARAMETERS     DriverVersionParams;
         public UsbDevicePnpStrings                      UsbDeviceProperties;
 
         public UsbHostControllerInfo() {

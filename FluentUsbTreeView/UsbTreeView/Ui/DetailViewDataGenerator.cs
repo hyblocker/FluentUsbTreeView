@@ -44,6 +44,12 @@ namespace FluentUsbTreeView.Ui {
         private static string WriteHex(ushort num, int places) {
             return $"0x{num.ToString($"X{places}")}";
         }
+        private static string WriteHex(long num, int places) {
+            return $"0x{num.ToString($"X{places}")}";
+        }
+        private static string WriteHex(ulong num, int places) {
+            return $"0x{num.ToString($"X{places}")}";
+        }
         private static string WriteHex<T>(T num, int places) where T : Enum {
             return $"0x{Convert.ToUInt64(num).ToString($"X{places}")}";
         }
@@ -349,6 +355,11 @@ namespace FluentUsbTreeView.Ui {
                     finalUptimeString += prefix + upTime.Minutes + ( upTime.Minutes == 1 ? " minute" : " minutes" );
                     addComma = true;
                 }
+                if ( upTime.Seconds > 0 ) {
+                    prefix = ( addComma ? ", " : string.Empty );
+                    finalUptimeString += prefix + upTime.Seconds + ( upTime.Seconds == 1 ? " second" : " seconds" );
+                    addComma = true;
+                }
             }
             #endregion
 
@@ -490,7 +501,6 @@ HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\USB\AutomaticSurpriseRemoval
             contentString.Append($"{PropertyTitle(" Legacy BIOS")}: {WriteBool(usbController.ControllerInfo.HcFeatureFlags & UsbApi.USB_HC_FEATURE_LEGACY_BIOS)}\n");
             contentString.Append($"{PropertyTitle(" Time Sync API")}: {WriteBool(usbController.ControllerInfo.HcFeatureFlags & UsbApi.USB_HC_FEATURE_TIME_SYNC_API)}\n");
 
-            // @TODO: Implement
             contentString.Append($"\n{PropertyTitle("Roothub Symbolic Link")}: {usbController.SymbolicLink}\n");
 
             #endregion
@@ -498,36 +508,37 @@ HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\USB\AutomaticSurpriseRemoval
             #region USB Hostcontroller BusStatistics
 
             // @TODO: Implement
+            DateTime busStatisticsCurrentSysTime = DateTime.FromFileTime(usbController.BusStatistics.CurrentSystemTime);
+
             contentString.Append($"\n\t\t----------- USB Hostcontroller BusStatistics ----------\n");
-            contentString.Append(@"DeviceCount              : 0x09 (9)
-CurrentSystemTime        : 0x01D9FEA873520CCA (2023-10-14 16:12:22)
-CurrentUsbFrame          : 0x30956FAA (815099818)
-BulkBytes                : 0x00 (0)
-IsoBytes                 : 0x00 (0)
-InterruptBytes           : 0x00 (0)
-ControlDataBytes         : 0x00 (0)
-PciInterruptCount        : 0x01 (1)
-HardResetCount           : 0x00 (0)
-WorkerSignalCount        : 0x00 (0)
-CommonBufferBytes        : 0x00 (0)
-WorkerIdleTimeMs         : 0x00 (0)
-RootHubEnabled           : 0x01 (yes)
-RootHubDevicePowerState  : 0x00 (D0)
-Unused                   : 0x00 (0)
-NameIndex                : 0x00 (0)");
+            contentString.Append($"{PropertyTitle("DeviceCount")}: {WriteHex(usbController.BusStatistics.DeviceCount, 2)} ({usbController.BusStatistics.DeviceCount})\n");
+            contentString.Append($"{PropertyTitle("CurrentSystemTime")}: {WriteHex(usbController.BusStatistics.CurrentSystemTime, 16)} ({busStatisticsCurrentSysTime.ToString("yyyy-MM-dd HH:mm:ss")})\n");
+            contentString.Append($"{PropertyTitle("CurrentUsbFrame")}: {WriteHex(usbController.BusStatistics.CurrentUsbFrame, 8)} ({usbController.BusStatistics.CurrentUsbFrame})\n");
+            contentString.Append($"{PropertyTitle("BulkBytes")}: {WriteHex(usbController.BusStatistics.BulkBytes, 2)} ({usbController.BusStatistics.BulkBytes})\n");
+            contentString.Append($"{PropertyTitle("IsoBytes")}: {WriteHex(usbController.BusStatistics.IsoBytes, 2)} ({usbController.BusStatistics.IsoBytes})\n");
+            contentString.Append($"{PropertyTitle("InterruptBytes")}: {WriteHex(usbController.BusStatistics.InterruptBytes, 2)} ({usbController.BusStatistics.InterruptBytes})\n");
+            contentString.Append($"{PropertyTitle("ControlDataBytes")}: {WriteHex(usbController.BusStatistics.ControlDataBytes, 2)} ({usbController.BusStatistics.ControlDataBytes})\n");
+            contentString.Append($"{PropertyTitle("PciInterruptCount")}: {WriteHex(usbController.BusStatistics.PciInterruptCount, 2)} ({usbController.BusStatistics.PciInterruptCount})\n");
+            contentString.Append($"{PropertyTitle("HardResetCount")}: {WriteHex(usbController.BusStatistics.HardResetCount, 2)} ({usbController.BusStatistics.HardResetCount})\n");
+            contentString.Append($"{PropertyTitle("WorkerSignalCount")}: {WriteHex(usbController.BusStatistics.WorkerSignalCount, 2)} ({usbController.BusStatistics.WorkerSignalCount})\n");
+            contentString.Append($"{PropertyTitle("CommonBufferBytes")}: {WriteHex(usbController.BusStatistics.CommonBufferBytes, 2)} ({usbController.BusStatistics.CommonBufferBytes})\n");
+            contentString.Append($"{PropertyTitle("WorkerIdleTimeMs")}: {WriteHex(usbController.BusStatistics.WorkerIdleTimeMs, 2)} ({usbController.BusStatistics.WorkerIdleTimeMs})\n");
+            contentString.Append($"{PropertyTitle("RootHubEnabled")}: {WriteHex(usbController.BusStatistics.RootHubEnabled, 2)} ({WriteBool(usbController.BusStatistics.RootHubEnabled)})\n");
+            contentString.Append($"{PropertyTitle("RootHubDevicePowerState")}: {WriteHex(0x00, 2)} (D{usbController.BusStatistics.RootHubDevicePowerState})\n");
+            contentString.Append($"{PropertyTitle("Unused")}: {WriteHex(usbController.BusStatistics.Unused, 2)} ({usbController.BusStatistics.Unused})\n");
+            contentString.Append($"{PropertyTitle("NameIndex")}: {WriteHex(usbController.BusStatistics.NameIndex, 2)} ({usbController.BusStatistics.NameIndex})\n");
 
             #endregion
 
             #region USB Hostcontroller Driver Version Params
 
-            // @TODO: Implement
             contentString.Append($"\n\t\t------ USB Hostcontroller Driver Version Params -------\n");
-            contentString.Append(@"DriverTrackingCode       : 0x04
-USBDI_Version            : 0x600
-USBUSER_Version          : 0x04
-CheckedPortDriver        : 0x00
-CheckedMiniportDriver    : 0x00
-USB_Version              : 0x00");
+            contentString.Append($"{PropertyTitle("DriverTrackingCode")}: {WriteHex(usbController.DriverVersionParams.DriverTrackingCode, 2)}\n");
+            contentString.Append($"{PropertyTitle("USBDI_Version")}: {WriteHex(usbController.DriverVersionParams.USBDI_Version, 3)}\n");
+            contentString.Append($"{PropertyTitle("USBUSER_Version")}: {WriteHex(usbController.DriverVersionParams.USBUSER_Version, 2)}\n");
+            contentString.Append($"{PropertyTitle("CheckedPortDriver")}: {WriteHex(usbController.DriverVersionParams.bCheckedPortDriver, 2)}\n");
+            contentString.Append($"{PropertyTitle("CheckedMiniportDriver")}: {WriteHex(usbController.DriverVersionParams.bCheckedMiniportDriver, 2)}\n");
+            contentString.Append($"{PropertyTitle("USB_Version")}: {WriteHex(usbController.DriverVersionParams.USB_Version, 2)}\n");
 
             #endregion
 
