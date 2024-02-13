@@ -17,6 +17,8 @@ namespace FluentUsbTreeView.Ui {
 
         const int LEFT_COLUMN_SIZE = 25;
         const int HEX_DUMP_MAX_ELEMENTS_PER_LINE = 16;
+        const string TITLE_HEX_DUMP = "Data (HexDump)";
+        static readonly string PROPERTY_HEX_DUMP = $"{PropertyTitle(TITLE_HEX_DUMP)}: ";
 
         #region String helpers
 
@@ -657,7 +659,6 @@ HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\USB\AutomaticSurpriseRemoval
                 contentString.Append($"\n\t  -------------------- String Descriptors -------------------\n");
                 if ( usbDevice.StringDescs != null ) {
                     contentString.Append($"\n\t\t\t ------ String Descriptor 0 ------\n");
-                    string hexDumpStr = $"{PropertyTitle("Data (HexDump)")}: ";
                     List<byte> stringDescFirstBytes = new List<byte>() { usbDevice.StringDescs.Lang_bLength, (byte)usbDevice.StringDescs.Lang_bDescriptorType };
 
                     // Special case: String descriptor 0 (language identifier)
@@ -669,8 +670,8 @@ HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\USB\AutomaticSurpriseRemoval
                         stringDescFirstBytes.Add((byte) (usbDevice.StringDescs.LanguageIds[langId] >> 8));
                     }
 
-                    contentString.Append(hexDumpStr);
-                    contentString.Append(WriteHexDumpWithAscii(stringDescFirstBytes.ToArray()));
+                    contentString.Append(PROPERTY_HEX_DUMP);
+                    contentString.Append(WriteHexDumpWithAscii(stringDescFirstBytes.ToArray(), usbDevice.StringDescs.Lang_bLength, PROPERTY_HEX_DUMP.Length));
                     contentString.Append("\n");
 
                     foreach ( var stringDesc in usbDevice.StringDescs.Strings ) {
@@ -678,8 +679,8 @@ HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\USB\AutomaticSurpriseRemoval
                         contentString.Append($"{PropertyTitle("bLength")}: {WriteHex(stringDesc.StringDescriptor.bLength, 2)} ({stringDesc.StringDescriptor.bLength} bytes)\n");
                         contentString.Append($"{PropertyTitle("bDescriptorType")}: {WriteHex(stringDesc.StringDescriptor.bDescriptorType, 2)} ({stringDesc.StringDescriptor.bDescriptorType})\n");
                         contentString.Append($"{PropertyTitle($"Language {WriteHex(stringDesc.LanguageID, 4)}")}: \"{ReadBytesAsString(stringDesc.StringDescriptor.bString)}\"\n");
-                        contentString.Append(hexDumpStr);
-                        contentString.Append(WriteHexDumpWithAscii(stringDesc.StringDescriptor, stringDesc.StringDescriptor.bLength, hexDumpStr.Length));
+                        contentString.Append(PROPERTY_HEX_DUMP);
+                        contentString.Append(WriteHexDumpWithAscii(stringDesc.StringDescriptor, stringDesc.StringDescriptor.bLength, PROPERTY_HEX_DUMP.Length));
                         contentString.Append("\n");
                     }
                 } else {
