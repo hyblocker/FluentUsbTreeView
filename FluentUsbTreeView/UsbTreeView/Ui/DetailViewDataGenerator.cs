@@ -452,34 +452,6 @@ HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\USB\AutomaticSurpriseRemoval
             string vendorStr = $"{WriteHex(usbController.ControllerInfo.PciVendorId, 4)}{( vendorIdName == null ? "" : $" ({vendorIdName})" )}";
             PrintUsbProps(ref contentString, usbController.UsbDeviceProperties, vendorStr);
 
-            /*
-            contentString.Append("\t\t+++++++++++++++++ Device Information ++++++++++++++++++\n");
-            contentString.Append($"{PropertyTitle("Friendly Name")}: {usbController.UsbDeviceProperties.FriendlyName}\n");
-            contentString.Append($"{PropertyTitle("Device Description")}: {usbController.UsbDeviceProperties.DeviceDesc}\n");
-            contentString.Append($"{PropertyTitle("Device Path")}: {usbController.UsbDeviceProperties.DevicePath}\n");
-            contentString.Append($"{PropertyTitle("Kernel Name")}: {usbController.UsbDeviceProperties.Kernel}\n");
-            contentString.Append($"{PropertyTitle("Device ID")}: {usbController.UsbDeviceProperties.DeviceId}\n");
-            contentString.Append($"{PropertyTitle("Vendor")}: {WriteHex(usbController.ControllerInfo.PciVendorId, 4)}{( vendorIdName == null ? "" : $" ({vendorIdName})" )}\n");
-            contentString.Append($"{PropertyTitle("Hardware IDs")}: {usbController.UsbDeviceProperties.HwId}\n");
-            contentString.Append($"{PropertyTitle("Driver KeyName")}: {usbController.UsbDeviceProperties.DriverKey}\n");
-            contentString.Append($"{PropertyTitle("Driver")}: {usbController.UsbDeviceProperties.Driver} (Version: {usbController.UsbDeviceProperties.DriverVersion}  Date: {usbController.UsbDeviceProperties.DriverDate.ToString("yyyy-MM-dd")}  Company: {usbController.UsbDeviceProperties.DriverCompany})\n");
-            contentString.Append($"{PropertyTitle("Driver Inf")}: {usbController.UsbDeviceProperties.DriverInf}\n");
-            contentString.Append($"{PropertyTitle("Legacy BusType")}: {usbController.UsbDeviceProperties.LegacyBusType}\n");
-            contentString.Append($"{PropertyTitle("Class")}: {usbController.UsbDeviceProperties.DeviceClass}\n");
-            contentString.Append($"{PropertyTitle("Class GUID")}: {usbController.UsbDeviceProperties.DeviceClassGuid}\n");
-            contentString.Append($"{PropertyTitle("Service")}: {usbController.UsbDeviceProperties.Service}\n");
-            contentString.Append($"{PropertyTitle("Enumerator")}: {usbController.UsbDeviceProperties.Enumerator}\n");
-            contentString.Append($"{PropertyTitle("Location Info")}: {usbController.UsbDeviceProperties.LocationInfo}\n");
-            contentString.Append($"{PropertyTitle("Location IDs")}: {usbController.UsbDeviceProperties.LocationPaths}\n");
-            contentString.Append($"{PropertyTitle("Container ID")}: {usbController.UsbDeviceProperties.ContainerId}\n");
-            contentString.Append($"{PropertyTitle("Manufacturer Info")}: {usbController.UsbDeviceProperties.Manufacturer}\n");
-            contentString.Append($"{PropertyTitle("Capabilities")}: {WriteHex(usbController.UsbDeviceProperties.Capabilities, 2)}{TryPrintEnum(usbController.UsbDeviceProperties.Capabilities)}\n");
-            contentString.Append($"{PropertyTitle("Status")}: {WriteHex(usbController.UsbDeviceProperties.Status, 8)}{TryPrintEnum(usbController.UsbDeviceProperties.Status)}\n");
-            contentString.Append($"{PropertyTitle("Problem Code")}: {usbController.UsbDeviceProperties.ProblemCode}\n");
-            contentString.Append($"{PropertyTitle("Address")}: {usbController.UsbDeviceProperties.Address}\n");
-            contentString.Append($"{PropertyTitle("Power State")}: {WriteDevicePowerState(usbController.UsbDeviceProperties.PowerState)}\n");
-            */
-
             #endregion
 
             #region USB Host Controller Info 0
@@ -596,35 +568,7 @@ HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\USB\AutomaticSurpriseRemoval
             }
 
             PrintUsbProps(ref contentString, usbHubInfo.UsbDeviceProperties);
-            /*
-            if ( usbHubInfo.UsbDeviceProperties != null ) {
-                contentString.Append("\n\t\t+++++++++++++++++ Device Information ++++++++++++++++++\n");
-                contentString.Append($"{PropertyTitle("Device Description")}: {usbHubInfo.UsbDeviceProperties.DeviceDesc}\n");
-                contentString.Append($"{PropertyTitle("Device Path")}: {usbHubInfo.UsbDeviceProperties.DevicePath}\n");
-                contentString.Append($"{PropertyTitle("Kernel Name")}: {usbHubInfo.UsbDeviceProperties.Kernel}\n");
-                contentString.Append($"{PropertyTitle("Device ID")}: {usbHubInfo.UsbDeviceProperties.DeviceId}\n");
-                contentString.Append($"{PropertyTitle("Hardware IDs")}: {usbHubInfo.UsbDeviceProperties.HwId}\n");
-                contentString.Append($"{PropertyTitle("Driver KeyName")}: {usbHubInfo.UsbDeviceProperties.DriverKey}\n");
-                contentString.Append($"{PropertyTitle("Driver")}: {usbHubInfo.UsbDeviceProperties.Driver} (Version: {usbHubInfo.UsbDeviceProperties.DriverVersion}  Date: {usbHubInfo.UsbDeviceProperties.DriverDate.ToString("yyyy-MM-dd")}  Company: {usbHubInfo.UsbDeviceProperties.DriverCompany})\n");
-                contentString.Append($"{PropertyTitle("Driver Inf")}: {usbHubInfo.UsbDeviceProperties.DriverInf}\n");
-                contentString.Append($"{PropertyTitle("Legacy BusType")}: {usbHubInfo.UsbDeviceProperties.LegacyBusType}\n");
-                contentString.Append($"{PropertyTitle("Class")}: {usbHubInfo.UsbDeviceProperties.DeviceClass}\n");
-                contentString.Append($"{PropertyTitle("Class GUID")}: {usbHubInfo.UsbDeviceProperties.DeviceClassGuid}\n");
-                contentString.Append($"{PropertyTitle("Service")}: {usbHubInfo.UsbDeviceProperties.Service}\n");
-                contentString.Append($"{PropertyTitle("Enumerator")}: {usbHubInfo.UsbDeviceProperties.Enumerator}\n");
-                contentString.Append($"{PropertyTitle("Location Info")}: {usbHubInfo.UsbDeviceProperties.LocationInfo}\n");
-                contentString.Append($"{PropertyTitle("Location IDs")}: {usbHubInfo.UsbDeviceProperties.LocationPaths}\n");
-                contentString.Append($"{PropertyTitle("Container ID")}: {usbHubInfo.UsbDeviceProperties.ContainerId}\n");
-                contentString.Append($"{PropertyTitle("Manufacturer Info")}: {usbHubInfo.UsbDeviceProperties.Manufacturer}\n");
-                contentString.Append($"{PropertyTitle("Capabilities")}: {WriteHex(( uint ) usbHubInfo.UsbDeviceProperties.Capabilities, 2)}{TryPrintEnum(usbHubInfo.UsbDeviceProperties.Capabilities)}\n");
-                contentString.Append($"{PropertyTitle("Status")}: {WriteHex(( uint ) usbHubInfo.UsbDeviceProperties.Status, 8)}{TryPrintEnum(usbHubInfo.UsbDeviceProperties.Status)}\n");
-                contentString.Append($"{PropertyTitle("Problem Code")}: {usbHubInfo.UsbDeviceProperties.ProblemCode}\n");
-                contentString.Append($"{PropertyTitle("Address")}: {usbHubInfo.UsbDeviceProperties.Address}\n");
-                contentString.Append($"{PropertyTitle("IdleInWorkingState")}: {usbHubInfo.UsbDeviceProperties.Address}\n");
-                contentString.Append($"{PropertyTitle("Power State")}: {WriteDevicePowerState(usbHubInfo.UsbDeviceProperties.PowerState)}\n");
-            }
-            */
-
+            
             if ( usbHubInfo.HubInfo.HasValue ) {
                 contentString.Append("\n\t\t------------------- USB Hub Descriptor -----------------\r\n\n");
                 switch ( usbHubInfo.HubInfo.Value.NodeType ) {
@@ -708,45 +652,7 @@ HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\USB\AutomaticSurpriseRemoval
                 string vendorStr = $"{WriteHex(usbDevice.UsbDeviceProperties.VendorID, 4)}{( vendorIdName == null ? "" : $" ({vendorIdName})" )}";
                 string productStr = $"{WriteHex(usbDevice.UsbDeviceProperties.ProductID, 4)}{( productIdName == null ? "" : $" ({productIdName})" )}";
 
-                // contentString.Append($"{PropertyTitle("Vendor ID")}: {WriteHex(usbDevice.UsbDeviceProperties.VendorID, 4)}{( vendorIdName == null ? "" : $" ({vendorIdName})" )}\n");
-                // contentString.Append($"{PropertyTitle("Product ID")}: {WriteHex(usbDevice.UsbDeviceProperties.ProductID, 4)}{( productIdName == null ? "" : $" ({productIdName})" )}\n");
-
                 PrintUsbProps(ref contentString, usbDevice.UsbDeviceProperties, vendorStr, productStr);
-
-                // if ( usbDevice.UsbDeviceProperties != null ) {
-                // 
-                //     string vendorIdName = UsbDatabase.GetUsbVendorName((ushort)usbDevice.UsbDeviceProperties.VendorID);
-                //     string productIdName = UsbDatabase.GetUsbProductName((ushort)usbDevice.UsbDeviceProperties.VendorID, (ushort)usbDevice.UsbDeviceProperties.ProductID);
-                // 
-                // 
-                //     contentString.Append($"\n\t\t+++++++++++++++++ Device Information ++++++++++++++++++\n");
-                //     contentString.Append($"{PropertyTitle("Device Description")}: {usbDevice.UsbDeviceProperties.DeviceDesc}\n");
-                //     contentString.Append($"{PropertyTitle("Device Path")}: {usbDevice.UsbDeviceProperties.DevicePath}\n");
-                //     contentString.Append($"{PropertyTitle("Kernel Name")}: {usbDevice.UsbDeviceProperties.Kernel}\n");
-                //     contentString.Append($"{PropertyTitle("Device ID")}: {usbDevice.UsbDeviceProperties.DeviceId}\n");
-                //     contentString.Append($"{PropertyTitle("Vendor ID")}: {WriteHex(usbDevice.UsbDeviceProperties.VendorID, 4)}{( vendorIdName == null ? "" : $" ({vendorIdName})" )}\n");
-                //     contentString.Append($"{PropertyTitle("Product ID")}: {WriteHex(usbDevice.UsbDeviceProperties.ProductID, 4)}{( productIdName == null ? "" : $" ({productIdName})" )}\n");
-                //     contentString.Append($"{PropertyTitle("Hardware IDs")}: {usbDevice.UsbDeviceProperties.HwId}\n");
-                //     contentString.Append($"{PropertyTitle("Driver KeyName")}: {usbDevice.UsbDeviceProperties.DriverKey}\n");
-                //     contentString.Append($"{PropertyTitle("Driver")}: {usbDevice.UsbDeviceProperties.Driver} (Version: {usbDevice.UsbDeviceProperties.DriverVersion}  Date: {usbDevice.UsbDeviceProperties.DriverDate.ToString("yyyy-MM-dd")}  Company: {usbDevice.UsbDeviceProperties.DriverCompany})\n");
-                //     contentString.Append($"{PropertyTitle("Driver Inf")}: {usbDevice.UsbDeviceProperties.DriverInf}\n");
-                //     contentString.Append($"{PropertyTitle("Legacy BusType")}: {usbDevice.UsbDeviceProperties.LegacyBusType}\n");
-                //     contentString.Append($"{PropertyTitle("Class")}: {usbDevice.UsbDeviceProperties.DeviceClass}\n");
-                //     contentString.Append($"{PropertyTitle("Class GUID")}: {usbDevice.UsbDeviceProperties.DeviceClassGuid}\n");
-                //     contentString.Append($"{PropertyTitle("Service")}: {usbDevice.UsbDeviceProperties.Service}\n");
-                //     contentString.Append($"{PropertyTitle("Enumerator")}: {usbDevice.UsbDeviceProperties.Enumerator}\n");
-                //     contentString.Append($"{PropertyTitle("Location Info")}: {usbDevice.UsbDeviceProperties.LocationInfo}\n");
-                //     contentString.Append($"{PropertyTitle("Location IDs")}: {usbDevice.UsbDeviceProperties.LocationPaths}\n");
-                //     contentString.Append($"{PropertyTitle("Container ID")}: {usbDevice.UsbDeviceProperties.ContainerId}\n");
-                //     contentString.Append($"{PropertyTitle("Manufacturer Info")}: {usbDevice.UsbDeviceProperties.Manufacturer}\n");
-                //     contentString.Append($"{PropertyTitle("Capabilities")}: {WriteHex(usbDevice.UsbDeviceProperties.Capabilities, 2)}{TryPrintEnum(usbDevice.UsbDeviceProperties.Capabilities)}\n");
-                //     contentString.Append($"{PropertyTitle("Status")}: {WriteHex(usbDevice.UsbDeviceProperties.Status, 8)}{TryPrintEnum(usbDevice.UsbDeviceProperties.Status)}\n");
-                //     contentString.Append($"{PropertyTitle("Problem Code")}: {usbDevice.UsbDeviceProperties.ProblemCode}\n");
-                //     contentString.Append($"{PropertyTitle("Address")}: {usbDevice.UsbDeviceProperties.Address}\n");
-                //     contentString.Append($"{PropertyTitle("Power State")}: {WriteDevicePowerState(usbDevice.UsbDeviceProperties.PowerState)}\n");
-                // 
-                // 
-                // }
 
                 contentString.Append($"\n\t  -------------------- String Descriptors -------------------\n");
                 if ( usbDevice.StringDescs != null ) {
