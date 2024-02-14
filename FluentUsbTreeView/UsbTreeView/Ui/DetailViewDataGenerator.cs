@@ -508,7 +508,7 @@ HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\USB\AutomaticSurpriseRemoval
             contentString.Append($"{PropertyTitle("WorkerIdleTimeMs")}: {WriteHex(usbController.BusStatistics.WorkerIdleTimeMs, 2)} ({usbController.BusStatistics.WorkerIdleTimeMs})\n");
             contentString.Append($"{PropertyTitle("RootHubEnabled")}: {WriteHex(usbController.BusStatistics.RootHubEnabled, 2)} ({WriteBool(usbController.BusStatistics.RootHubEnabled)})\n");
             contentString.Append($"{PropertyTitle("RootHubDevicePowerState")}: {WriteHex(0x00, 2)} (D{usbController.BusStatistics.RootHubDevicePowerState})\n");
-            contentString.Append($"{PropertyTitle("Unused")}: {WriteHex(usbController.BusStatistics.Unused, 2)} ({usbController.BusStatistics.Unused})\n");
+            // contentString.Append($"{PropertyTitle("Unused")}: {WriteHex(usbController.BusStatistics.Unused, 2)} ({usbController.BusStatistics.Unused})\n");
             contentString.Append($"{PropertyTitle("NameIndex")}: {WriteHex(usbController.BusStatistics.NameIndex, 2)} ({usbController.BusStatistics.NameIndex})\n");
 
             #endregion
