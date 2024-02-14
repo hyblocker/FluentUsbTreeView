@@ -8,6 +8,7 @@ namespace InteropGenHelper {
 
         }
 
+        /*
         unsafe void GetServicePath(Windows.Win32.Security.SC_HANDLE hSCManager, string szSvcName) {
             Windows.Win32.Security.SC_HANDLE hService;
             QUERY_SERVICE_CONFIGW* lpsc = null;
@@ -50,5 +51,6 @@ namespace InteropGenHelper {
             // Cleanup
             PInvoke.CloseServiceHandle(hService);
         }
+        */
     }
 }
