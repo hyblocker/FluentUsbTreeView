@@ -675,7 +675,7 @@ HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\USB\AutomaticSurpriseRemoval
                             // Legacy fluff for 1.0 compatibility, just print
 
                             // PortPwrCtrlMask
-                            if ( usbHubInfo.HubInfo.Value.u.HubInformation.HubDescriptor.bDescriptorLength > 7 + rpmMaskBits / 4) {
+                            if ( usbHubInfo.HubInfo.Value.u.HubInformation.HubDescriptor.bDescriptorLength >= 7 + rpmMaskBits / 4) {
                                 contentString.Append($"{PropertyTitle("PowerControlMask")}: { WriteHex(powerMaskBytes, rpmMaskBits / 4)}\n");
                             }
                         }
