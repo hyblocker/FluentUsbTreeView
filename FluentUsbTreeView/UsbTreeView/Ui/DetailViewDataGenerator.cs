@@ -712,6 +712,10 @@ HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\USB\AutomaticSurpriseRemoval
                 contentString.Append("\n\t\t----------------- USB Hub Capabilities ----------------\n");
                 // the actual structure is deprecated but we can infer its data like so:
                 contentString.Append($"{PropertyTitle("HubIs2xCapable")}: {(usbHubInfo.HubCapabilityEx.Value.CapabilityFlags.HasFlag(USB_HUB_CAP_FLAGS.HubIsHighSpeedCapable) ? "1 (Is 2.x capable)" : "0 (Is not 2.x capable)" ) }\n");
+
+                contentString.Append(PROPERTY_HEX_DUMP);
+                contentString.Append(WriteHexDumpWithAscii(usbHubInfo.HubCapabilityEx.Value.CapabilityFlags.HasFlag(USB_HUB_CAP_FLAGS.HubIsHighSpeedCapable), 4, PROPERTY_HEX_DUMP.Length));
+                contentString.Append("\n");
             }
             
             if ( usbHubInfo.HubCapabilityEx.HasValue ) {
@@ -730,6 +734,10 @@ HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\USB\AutomaticSurpriseRemoval
                 contentString.Append($"{PropertyTitle("IsRoot")}: {( HubIsRoot ? "1" : "0")} ({WriteBool(HubIsRoot)})\n");
                 contentString.Append($"{PropertyTitle("ArmedWakeOnConnect")}: {( HubIsArmedWakeOnConnect ? "1" : "0")} ({WriteBool(HubIsArmedWakeOnConnect)})\n");
                 contentString.Append($"{PropertyTitle("IsBusPowered")}: {( HubIsBusPowered ? "1" : "0")} ({WriteBool(HubIsBusPowered)})\n");
+
+                contentString.Append(PROPERTY_HEX_DUMP);
+                contentString.Append(WriteHexDumpWithAscii(usbHubInfo.HubCapabilityEx.Value, 4, PROPERTY_HEX_DUMP.Length));
+                contentString.Append("\n");
             }
 
             contentString.Append("\n\n"); // End
