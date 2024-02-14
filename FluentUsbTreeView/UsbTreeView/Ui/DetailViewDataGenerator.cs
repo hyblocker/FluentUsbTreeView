@@ -564,7 +564,7 @@ HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\USB\AutomaticSurpriseRemoval
             return contentString.ToString();
         }
 
-        public static string GetInfoStringForUsbHub(UsbHubInfo usbHubInfo) {
+        public static unsafe string GetInfoStringForUsbHub(UsbHubInfo usbHubInfo) {
 
             StringBuilder contentString = new StringBuilder();
 
@@ -740,6 +740,11 @@ HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\USB\AutomaticSurpriseRemoval
                 contentString.Append("\n");
             }
 
+            // String descriptors, only if not a root hub
+            if ( !(usbHubInfo.HubCapabilityEx.HasValue && usbHubInfo.HubCapabilityEx.Value.CapabilityFlags.HasFlag(USB_HUB_CAP_FLAGS.HubIsRoot)) ) {
+                PrintStringDescriptors(ref contentString, usbHubInfo.StringDescs, usbHubInfo.DeviceInfoNode?.LatestDevicePowerState);
+            }
+
             contentString.Append("\n\n"); // End
 
             return contentString.ToString();
@@ -765,6 +770,7 @@ HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\USB\AutomaticSurpriseRemoval
 
                 PrintUsbProps(ref contentString, usbDevice.UsbDeviceProperties, vendorStr, productStr);
 
+                /*
                 contentString.Append($"\n\t  -------------------- String Descriptors -------------------\n");
                 if ( usbDevice.StringDescs != null ) {
                     contentString.Append($"\n\t\t\t ------ String Descriptor 0 ------\n");
@@ -799,6 +805,9 @@ HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\USB\AutomaticSurpriseRemoval
                         contentString.Append($"String descriptors are not available  (because the device is in low power state).\n");
                     }
                 }
+                */
+
+                PrintStringDescriptors(ref contentString, usbDevice.StringDescs, usbDevice.DeviceInfoNode?.LatestDevicePowerState);
             }
 
             contentString.Append("\n\n"); // End
@@ -840,6 +849,43 @@ HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\USB\AutomaticSurpriseRemoval
                 contentString.Append($"{PropertyTitle("Address")}: {usbProps.Address}\n");
                 contentString.Append($"{PropertyTitle("IdleInWorkingState")}: {usbProps.Address}\n");
                 contentString.Append($"{PropertyTitle("Power State")}: {WriteDevicePowerState(usbProps.PowerState)}\n");
+            }
+        }
+
+        private static void PrintStringDescriptors(ref StringBuilder contentString, StringDescriptorsCollection stringDescs, DEVICE_POWER_STATE? powerState) {
+            contentString.Append($"\n\t  -------------------- String Descriptors -------------------\n");
+            if ( stringDescs != null ) {
+                contentString.Append($"\n\t\t\t ------ String Descriptor 0 ------\n");
+                List<byte> stringDescFirstBytes = new List<byte>() { stringDescs.Lang_bLength, (byte) stringDescs.Lang_bDescriptorType };
+
+                // Special case: String descriptor 0 (language identifier)
+                contentString.Append($"{PropertyTitle("bLength")}: {WriteHex(stringDescs.Lang_bLength, 2)} ({stringDescs.Lang_bLength} bytes)\n");
+                contentString.Append($"{PropertyTitle("bDescriptorType")}: {WriteHex(stringDescs.Lang_bDescriptorType, 2)} ({stringDescs.Lang_bDescriptorType})\n");
+                for ( int langId = 0; langId < stringDescs.LanguageIds.Length; langId++ ) {
+                    contentString.Append($"{PropertyTitle($"LanguageID[{langId}]")}: {WriteHex(stringDescs.LanguageIds[langId], 4)}{( stringDescs.LanguageIds[langId] == 0x0409 ? " (English - United States)" : "" )}\n");
+                    stringDescFirstBytes.Add(( byte ) ( stringDescs.LanguageIds[langId] & 255 ));
+                    stringDescFirstBytes.Add(( byte ) ( stringDescs.LanguageIds[langId] >> 8 ));
+                }
+
+                contentString.Append(PROPERTY_HEX_DUMP);
+                contentString.Append(WriteHexDumpWithAscii(stringDescFirstBytes.ToArray(), stringDescs.Lang_bLength, PROPERTY_HEX_DUMP.Length));
+                contentString.Append("\n");
+
+                foreach ( var stringDesc in stringDescs.Strings ) {
+                    contentString.Append($"\n\t\t\t ------ String Descriptor {stringDesc.DescriptorIndex} ------\n");
+                    contentString.Append($"{PropertyTitle("bLength")}: {WriteHex(stringDesc.StringDescriptor.bLength, 2)} ({stringDesc.StringDescriptor.bLength} bytes)\n");
+                    contentString.Append($"{PropertyTitle("bDescriptorType")}: {WriteHex(stringDesc.StringDescriptor.bDescriptorType, 2)} ({stringDesc.StringDescriptor.bDescriptorType})\n");
+                    contentString.Append($"{PropertyTitle($"Language {WriteHex(stringDesc.LanguageID, 4)}")}: \"{ReadBytesAsString(stringDesc.StringDescriptor.bString)}\"\n");
+                    contentString.Append(PROPERTY_HEX_DUMP);
+                    contentString.Append(WriteHexDumpWithAscii(stringDesc.StringDescriptor, stringDesc.StringDescriptor.bLength, PROPERTY_HEX_DUMP.Length));
+                    contentString.Append("\n");
+                }
+            } else {
+                if ( powerState == DEVICE_POWER_STATE.PowerDeviceD0 ) {
+                    contentString.Append($"String descriptors are not available for this device!\n");
+                } else {
+                    contentString.Append($"String descriptors are not available  (because the device is in low power state).\n");
+                }
             }
         }
     }
