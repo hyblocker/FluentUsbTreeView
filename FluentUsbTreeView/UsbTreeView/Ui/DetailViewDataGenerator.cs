@@ -694,10 +694,10 @@ HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\USB\AutomaticSurpriseRemoval
             if ( usbHubInfo.HubInfoEx.HasValue ) {
                 contentString.Append("\n\t  ---------------- Extended USB Hub Descriptor ---------------\n");
                 switch (usbHubInfo.HubInfoEx.Value.HubType) {
-                    case USB_HUB_TYPE.Usb20Hub:
+                    case USB_HUB_TYPE.Usb30Hub:
                         contentString.Append($"{PropertyTitle("HubType")}: {WriteHex(usbHubInfo.HubInfoEx.Value.HubType, 2)} ({usbHubInfo.HubInfoEx.Value.HubType} - hub descriptor is defined in USB 3.0 specification)\n");
                         break;
-                    case USB_HUB_TYPE.Usb30Hub:
+                    case USB_HUB_TYPE.Usb20Hub:
                         contentString.Append($"{PropertyTitle("HubType")}: {WriteHex(usbHubInfo.HubInfoEx.Value.HubType, 2)} ({usbHubInfo.HubInfoEx.Value.HubType} - hub descriptor is defined in USB 2.0 and 1.1 specifications)\n");
                         break;
                     case USB_HUB_TYPE.UsbRootHub:
