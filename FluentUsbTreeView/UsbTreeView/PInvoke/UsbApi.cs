@@ -316,13 +316,64 @@ namespace FluentUsbTreeView.PInvoke {
             public byte HubIsBusPowered;
         }
 
+        public const int HUB_CHAR_LPSM		        = 0x0003; /* Logical Power Switching Mode mask */
+        public const int HUB_CHAR_COMMON_LPSM	    = 0x0000; /* All ports power control at once */
+        public const int HUB_CHAR_INDV_PORT_LPSM	= 0x0001; /* per-port power control */
+        public const int HUB_CHAR_NO_LPSM	        = 0x0002; /* no power switching */
+        public const int HUB_CHAR_COMPOUND	        = 0x0004; /* hub is part of a compound device */
+        public const int HUB_CHAR_OCPM		        = 0x0018; /* Over-Current Protection Mode mask */
+        public const int HUB_CHAR_COMMON_OCPM	    = 0x0000; /* All ports Over-Current reporting */
+        public const int HUB_CHAR_INDV_PORT_OCPM	= 0x0008; /* per-port Over-current reporting */
+        public const int HUB_CHAR_NO_OCPM	        = 0x0010; /* No Over-current Protection support */
+        public const int HUB_CHAR_TTTT		        = 0x0060; /* TT Think Time mask */
+        public const int HUB_CHAR_PORTIND	        = 0x0080; /* per-port indicators (LEDs) */
+
         // USB 1.1: 11.15.2.1 Hub Descriptor, Table 11-8. Hub Descriptor
         // USB 2.0: 11.23.2.1 Hub Descriptor, Table 11-13. Hub Descriptor
+        // https://manuais.iessanclemente.net/images/b/bc/USB_3_1_r1.0.pdf
         [StructLayout(LayoutKind.Sequential, Pack = 1, Size = 71)]
         public unsafe struct USB_HUB_DESCRIPTOR {
             public byte bDescriptorLength;
             public byte bDescriptorType;
             public byte bNumberOfPorts;
+            /// <summary>
+            /// D1...D0: Logical Power Switching Mode
+            ///     00: Ganged power switching (all ports’ power at
+            ///         once)
+            ///     01: Individual port power switching
+            ///     1X: Reserved. Used only on 1.0 compliant hubs
+            ///         that implement no power switching
+            /// D2: Identifies a Compound Device
+            ///     0: Hub is not part of a compound device.
+            ///     1: Hub is part of a compound device.
+            /// D4...D3: Over-current Protection Mode
+            ///     00: Global Over-current Protection. The hub
+            ///         reports over-current as a summation of all
+            ///         ports’ current draw, without a breakdown of
+            ///         individual port over-current status.
+            ///     01: Individual Port Over-current Protection. The
+            ///         hub reports over-current on a per-port basis.
+            ///         Each port has an over-current status.
+            ///     1X: No Over-current Protection. This option is
+            ///         allowed only for bus-powered hubs that do not
+            ///         implement over-current protection.
+            /// D6...D5: TT Think TIme
+            ///     00: TT requires at most 8 FS bit times of inter
+            ///         transaction gap on a full-/low-speed
+            ///         downstream bus.
+            ///     01: TT requires at most 16 FS bit times.
+            ///     10: TT requires at most 24 FS bit times.
+            ///     11: TT requires at most 32 FS bit times.
+            /// D7: Port Indicators Supported
+            ///     0: Port Indicators are not supported on its
+            ///        downstream facing ports and the
+            ///        PORT_INDICATOR request has no effect.
+            ///     1: Port Indicators are supported on its
+            ///        downstream facing ports and the
+            ///        PORT_INDICATOR request controls the
+            ///        indicators.See Section 11.5.3.
+            /// D15...D8: Reserved
+            /// </summary>
             public ushort wHubCharacteristics;
             public byte bPowerOnToPowerGood;
             public byte bHubControlCurrent;

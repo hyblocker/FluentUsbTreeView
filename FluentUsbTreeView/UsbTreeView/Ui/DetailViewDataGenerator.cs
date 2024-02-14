@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -93,6 +94,14 @@ namespace FluentUsbTreeView.Ui {
                 Marshal.FreeHGlobal(ptr);
             }
             return arr;
+        }
+
+        private static uint IsolateBits(uint num, uint mask, int offset) {
+            return ( ( num & mask ) >> offset );
+        }
+
+        private static ushort IsolateBits(ushort num, ushort mask, int offset) {
+            return (ushort)((num & mask) >> offset);
         }
 
         /// <summary>
@@ -575,17 +584,109 @@ HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\USB\AutomaticSurpriseRemoval
                 contentString.Append("\n\t\t------------------- USB Hub Descriptor -----------------\r\n\n");
                 switch ( usbHubInfo.HubInfo.Value.NodeType ) {
                     case USB_HUB_NODE.UsbHub:
-                        contentString.Append($"{PropertyTitle("bDescriptorLength")}: {  usbHubInfo.HubInfo.Value.u.HubInformation.HubDescriptor.bDescriptorLength}\n");
-                        contentString.Append($"{PropertyTitle("bDescriptorType")}: {    usbHubInfo.HubInfo.Value.u.HubInformation.HubDescriptor.bDescriptorType}\n");
-                        contentString.Append($"{PropertyTitle("bNumberOfPorts")}: {     usbHubInfo.HubInfo.Value.u.HubInformation.HubDescriptor.bNumberOfPorts}\n");
-                        contentString.Append($"{PropertyTitle("wHubCharacteristics")}: {usbHubInfo.HubInfo.Value.u.HubInformation.HubDescriptor.wHubCharacteristics}\n");
+                        contentString.Append($"{PropertyTitle("bDescriptorLength")}: {WriteHex(usbHubInfo.HubInfo.Value.u.HubInformation.HubDescriptor.bDescriptorLength, 2)} ({usbHubInfo.HubInfo.Value.u.HubInformation.HubDescriptor.bDescriptorLength} bytes)\n");
+                        contentString.Append($"{PropertyTitle("bDescriptorType")}: {WriteHex(usbHubInfo.HubInfo.Value.u.HubInformation.HubDescriptor.bDescriptorType, 2)}\n");
+                        contentString.Append($"{PropertyTitle("bNumberOfPorts")}: {WriteHex(usbHubInfo.HubInfo.Value.u.HubInformation.HubDescriptor.bNumberOfPorts, 2)} ({usbHubInfo.HubInfo.Value.u.HubInformation.HubDescriptor.bNumberOfPorts} Ports)\n");
+                        contentString.Append($"{PropertyTitle("wHubCharacteristics")}: {WriteHex(usbHubInfo.HubInfo.Value.u.HubInformation.HubDescriptor.wHubCharacteristics, 4)}\n"); {
+                            ushort hubChars = usbHubInfo.HubInfo.Value.u.HubInformation.HubDescriptor.wHubCharacteristics;
+                            string buffer;
+                            switch ( IsolateBits(hubChars, UsbApi.HUB_CHAR_LPSM, 0) ) {
+                                case UsbApi.HUB_CHAR_COMMON_LPSM: // Ganged
+                                    buffer = "Ganged (All ports power on at once)";
+                                    break;
+                                case UsbApi.HUB_CHAR_INDV_PORT_LPSM: // Individual
+                                    buffer = "Individual";
+                                    break;
+                                case UsbApi.HUB_CHAR_NO_LPSM:
+                                default:
+                                    buffer = "No power switching";
+                                    break;
+                            }
+                            contentString.Append($"{PropertyTitle(" Power switching")}: {buffer}\n");
+                            contentString.Append($"{PropertyTitle(" Compound device")}: {WriteBool(IsolateBits(hubChars, UsbApi.HUB_CHAR_COMPOUND, 2))}\n");
+                            switch ( IsolateBits(hubChars, UsbApi.HUB_CHAR_OCPM, 3) ) {
+                                case UsbApi.HUB_CHAR_COMMON_OCPM:
+                                    buffer = "Global";
+                                    break;
+                                case UsbApi.HUB_CHAR_INDV_PORT_OCPM:
+                                    buffer = "Individual";
+                                    break;
+                                case UsbApi.HUB_CHAR_NO_OCPM:
+                                default:
+                                    buffer = "No over-current protection";
+                                    break;
+                            }
+                            contentString.Append($"{PropertyTitle(" Over-current protection")}: {buffer}\n");
+                            switch ( IsolateBits(hubChars, UsbApi.HUB_CHAR_TTTT, 5) ) {
+                                case 0b00:
+                                    buffer = "At most 8 FS bit times";
+                                    break;
+                                case 0b01:
+                                    buffer = "At most 16 FS bit times";
+                                    break;
+                                case 0b10:
+                                    buffer = "At most 24 FS bit times";
+                                    break;
+                                case 0b11:
+                                    buffer = "At most 32 FS bit times";
+                                    break;
+                                default:
+                                    buffer = "At most 8 FS bit times";
+                                    break;
+                            }
+                            contentString.Append($"{PropertyTitle(" TT Think time")}: {buffer}\n");
+                            contentString.Append($"{PropertyTitle(" Port indicators")}: {( IsolateBits(hubChars, UsbApi.HUB_CHAR_PORTIND, 7) == 0 ? "Not supported" : "Supported" )}\n");
+                        }
                         contentString.Append($"{PropertyTitle("bPowerOnToPowerGood")}: {WriteHex(usbHubInfo.HubInfo.Value.u.HubInformation.HubDescriptor.bPowerOnToPowerGood, 2)} ({usbHubInfo.HubInfo.Value.u.HubInformation.HubDescriptor.bPowerOnToPowerGood} ms)\n");
-                        contentString.Append($"{PropertyTitle("bHubControlCurrent")}: { WriteHex(usbHubInfo.HubInfo.Value.u.HubInformation.HubDescriptor.bHubControlCurrent, 2)} ({usbHubInfo.HubInfo.Value.u.HubInformation.HubDescriptor.bHubControlCurrent} mA)\n");
-                        // contentString.Append($"{PropertyTitle("bRemoveAndPowerMask")}: {usbHubInfo.HubInfo.Value.UsbHubDescriptor.bRemoveAndPowerMask}\n");
-                        contentString.Append($"{PropertyTitle("HubIsBusPowered")}: {usbHubInfo.HubInfo.Value.u.HubInformation.HubIsBusPowered}\n");
+                        contentString.Append($"{PropertyTitle("bHubControlCurrent")}: {WriteHex(usbHubInfo.HubInfo.Value.u.HubInformation.HubDescriptor.bHubControlCurrent, 2)} ({usbHubInfo.HubInfo.Value.u.HubInformation.HubDescriptor.bHubControlCurrent} mA)\n");
+                        
+                        {
+                            // bRemoveAndPowerMask's interpretation changes depending on how many ports are allocated
+
+                            // DeviceRemovable : Size depends on number of ports bNumberOfPorts bits - 1 to the nearest power of 2
+                            int rpmMaskBits = usbHubInfo.HubInfo.Value.u.HubInformation.HubDescriptor.bNumberOfPorts > 7 ? 16 : 8;
+
+                            // Get bRemoveAndPowerMask as a managed array, and extract the remove and power masks into uint16_ts
+                            var bRemoveAndPowerMask = new byte[64];
+                            ushort devRemoveableBytes = 0, powerMaskBytes = 0;
+                            var hubInfoDescriptor = usbHubInfo.HubInfo.Value.u.HubInformation.HubDescriptor;
+                            Marshal.Copy(new IntPtr(hubInfoDescriptor.bRemoveAndPowerMask), bRemoveAndPowerMask, 0, 64);
+                            if ( usbHubInfo.HubInfo.Value.u.HubInformation.HubDescriptor.bNumberOfPorts > 7 ) {
+                                devRemoveableBytes = ( ushort ) ( ( bRemoveAndPowerMask[0] << 8 ) | bRemoveAndPowerMask[1] );
+                                powerMaskBytes = ( ushort ) ( ( bRemoveAndPowerMask[2] << 8 ) | bRemoveAndPowerMask[3] );
+                            } else {
+                                devRemoveableBytes = bRemoveAndPowerMask[0];
+                                powerMaskBytes = bRemoveAndPowerMask[1];
+                            }
+
+                            // Build the device removeable section
+                            contentString.Append($"{PropertyTitle("DeviceRemovable")}: { WriteHex(devRemoveableBytes, rpmMaskBits / 4)}\n");
+                            for (int i = 0; i < rpmMaskBits; i++) {
+                                ushort currentBit = IsolateBits(devRemoveableBytes, (ushort) (0x01 << i), 0);
+                                string reasonString = "unused, must be 0";
+                                if ( i == 0 ) {
+                                    reasonString = "reserved, any value";
+                                } else if ( i <= usbHubInfo.HubInfo.Value.u.HubInformation.HubDescriptor.bNumberOfPorts ) {
+                                    reasonString = $"Device at Port {i} is {(currentBit == 0 ? "removable" : "not removable" )}";
+                                }
+                                contentString.Append($"{PropertyTitle($" Bit {i}")}: {currentBit} ({reasonString})\n");
+                            }
+
+                            // Legacy fluff for 1.0 compatibility, just print
+
+                            // PortPwrCtrlMask
+                            if ( usbHubInfo.HubInfo.Value.u.HubInformation.HubDescriptor.bDescriptorLength > 7 + rpmMaskBits / 4) {
+                                contentString.Append($"{PropertyTitle("PowerControlMask")}: { WriteHex(powerMaskBytes, rpmMaskBits / 4)}\n");
+                            }
+                        }
+
+                        contentString.Append(PROPERTY_HEX_DUMP);
+                        contentString.Append(WriteHexDumpWithAscii(usbHubInfo.HubInfo.Value.u.HubInformation.HubDescriptor, usbHubInfo.HubInfo.Value.u.HubInformation.HubDescriptor.bDescriptorLength, PROPERTY_HEX_DUMP.Length));
+                        contentString.Append("\n");
+                        contentString.Append($"{PropertyTitle("HubIsBusPowered")}: {WriteHex(usbHubInfo.HubInfo.Value.u.HubInformation.HubIsBusPowered, 2)} ({(usbHubInfo.HubInfo.Value.u.HubInformation.HubIsBusPowered == 0 ? "Self Powered" : "Bus Powered" )})\n");
                         break;
                     case USB_HUB_NODE.UsbMIParent:
-                        contentString.Append($"{PropertyTitle("NumberOfInterfaces")}: {usbHubInfo.HubInfo.Value.u.MiParentInformation.NumberOfInterfaces}\n");
+                        contentString.Append($"{PropertyTitle("NumberOfInterfaces")}: {WriteHex(usbHubInfo.HubInfo.Value.u.MiParentInformation.NumberOfInterfaces, 4)} ({usbHubInfo.HubInfo.Value.u.MiParentInformation.NumberOfInterfaces} interfaces)\n");
                         break;
                 }
             }
