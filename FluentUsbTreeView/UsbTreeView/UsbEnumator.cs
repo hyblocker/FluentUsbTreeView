@@ -2065,7 +2065,6 @@ namespace FluentUsbTreeView.UsbTreeView {
             Marshal.Copy(( IntPtr ) supportedLanguagesString.bString, stringDescriptors.LanguageIds, 0, ( int ) numLanguageIDs);
 
             // Get the Device Descriptor strings
-
             if ( DeviceDesc.iManufacturer != 0) {
                 GetStringDescriptors(hHubDevice,
                                      ConnectionIndex,
@@ -2100,7 +2099,7 @@ namespace FluentUsbTreeView.UsbTreeView {
             commonDesc = ( USB_COMMON_DESCRIPTOR* ) ConfigDesc;
 
             while ( ( byte* ) commonDesc + Marshal.SizeOf(typeof(USB_COMMON_DESCRIPTOR)) < descEnd &&
-                   ( byte* ) commonDesc + commonDesc->bLength <= descEnd ) {
+                    ( byte* ) commonDesc + commonDesc->bLength <= descEnd ) {
                 switch ( commonDesc->bDescriptorType ) {
                     case USB_DESCRIPTOR_TYPE.USB_CONFIGURATION_DESCRIPTOR_TYPE:
                         if ( commonDesc->bLength != Marshal.SizeOf(typeof(USB_CONFIGURATION_DESCRIPTOR)) ) {
@@ -2153,7 +2152,7 @@ namespace FluentUsbTreeView.UsbTreeView {
                         // interface classes
                         bInterfaceClass = ( ( USB_INTERFACE_DESCRIPTOR* ) commonDesc )->bInterfaceClass;
                         if ( bInterfaceClass == UsbApi.USB_DEVICE_CLASS_VIDEO ) {
-                            getMoreStrings = true;
+                            // getMoreStrings = true;
                         }
                         commonDesc = ( USB_COMMON_DESCRIPTOR* ) ( ( byte* ) commonDesc + commonDesc->bLength );
                         continue;
@@ -2164,6 +2163,9 @@ namespace FluentUsbTreeView.UsbTreeView {
                 }
                 break;
             }
+
+            // Some string descriptors are not shown for all devices, so we try getting them anyway
+            getMoreStrings = true;
 
             if ( getMoreStrings ) {
                 //

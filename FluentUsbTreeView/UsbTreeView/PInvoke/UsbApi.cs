@@ -270,12 +270,12 @@ namespace FluentUsbTreeView.PInvoke {
         // USB 3.0: 9.6.6 Endpoint, Table 9-18. Standard Endpoint Descriptor
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto, Pack = 1)]
         public struct USB_ENDPOINT_DESCRIPTOR {
-            byte    bLength;
-            byte    bDescriptorType;
-            byte    bEndpointAddress;
-            byte    bmAttributes;
-            ushort  wMaxPacketSize;
-            byte    bInterval;
+            public byte    bLength;
+            public byte    bDescriptorType;
+            public byte    bEndpointAddress;
+            public byte    bmAttributes;
+            public ushort  wMaxPacketSize;
+            public byte    bInterval;
         }
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
@@ -430,6 +430,12 @@ namespace FluentUsbTreeView.PInvoke {
             public USB_ENDPOINT_DESCRIPTOR EndpointDescriptor;
             public uint ScheduleOffset;
         }
+        public const ushort USB_ENDPOINT_DIRECTION_MASK                 = 0x80;
+        public static bool USB_ENDPOINT_DIRECTION_OUT(uint addr)        { return (addr & USB_ENDPOINT_DIRECTION_MASK) == 0;}
+        public static bool USB_ENDPOINT_DIRECTION_IN(uint addr)         { return ( addr & USB_ENDPOINT_DIRECTION_MASK ) != 0; }
+
+        public const ushort USB_ENDPOINT_ADDRESS_MASK                   = 0x0F;
+
 
         // @TODO: PipeList
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
@@ -568,6 +574,7 @@ namespace FluentUsbTreeView.PInvoke {
             public USB_DESCRIPTOR_TYPE bDescriptorType;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = MAXIMUM_USB_STRING_LENGTH, ArraySubType = UnmanagedType.U1 )]
             public byte[] bString;
+            // public IntPtr bString;
         }
 
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto, Pack = 1)]

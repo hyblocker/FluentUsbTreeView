@@ -109,10 +109,11 @@ namespace FluentUsbTreeView {
     }
     public class StringDescriptorNode {
         public byte                     DescriptorIndex;
-        public short                   LanguageID;
+        public short                    LanguageID;
         public USB_STRING_DESCRIPTOR    StringDescriptor;
 
         public string GetStringData() {
+            // string unicodeString = Marshal.PtrToStringAuto(StringDescriptor.bString);
             string unicodeString = Encoding.Unicode.GetString(StringDescriptor.bString);
             unicodeString = unicodeString.Remove(unicodeString.IndexOf('\0'));
             return unicodeString;

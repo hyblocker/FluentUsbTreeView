@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -806,6 +807,35 @@ HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\USB\AutomaticSurpriseRemoval
                     }
                 }
                 */
+
+                #region Connection Info
+                contentString.Append("\n\t\t--------------- Connection Information  ---------------\n");
+                contentString.Append($"{PropertyTitle("Connection Index")}: {WriteHex(usbDevice.ConnectionInfo.ConnectionIndex, 2)} (Port {usbDevice.ConnectionInfo.ConnectionIndex})\n");
+                contentString.Append($"{PropertyTitle("Connection Status")}: {WriteHex(usbDevice.ConnectionInfo.ConnectionStatus, 2)}  ({usbDevice.ConnectionInfo.ConnectionStatus})\n");
+                contentString.Append($"{PropertyTitle("Current Config Value")}: {WriteHex(usbDevice.ConnectionInfo.CurrentConfigurationValue, 2)}  (Configuration {usbDevice.ConnectionInfo.CurrentConfigurationValue})\n");
+                contentString.Append($"{PropertyTitle("Device Address")}: {WriteHex(usbDevice.ConnectionInfo.DeviceAddress, 2)}   ({usbDevice.ConnectionInfo.DeviceAddress})\n");
+                contentString.Append($"{PropertyTitle("Is Hub")}: {WriteHex(usbDevice.ConnectionInfo.DeviceIsHub, 2)}   ({WriteBool(usbDevice.ConnectionInfo.DeviceIsHub)})\n");
+                contentString.Append($"{PropertyTitle("Device Bus Speed")}: {WriteHex(usbDevice.ConnectionInfo.Speed, 2)}   ({usbDevice.ConnectionInfo.Speed})\n");
+                contentString.Append($"{PropertyTitle("Number of open Pipes")}: {WriteHex(usbDevice.ConnectionInfo.NumberOfOpenPipes, 2)}    ({usbDevice.ConnectionInfo.NumberOfOpenPipes} pipe to data endpoints)\n");
+
+                unsafe {
+                    for ( int i = 0; i < usbDevice.ConnectionInfo.NumberOfOpenPipes; i++ ) {
+                        contentString.Append($"{PropertyTitle($"Pipe[{i}]")}:");
+                        contentString.Append($"EndpointID ={usbDevice.ConnectionInfo.PipeList[i].EndpointDescriptor.GetAddress()}  ");
+                        contentString.Append($"Direction={(usbDevice.ConnectionInfo.PipeList[i].EndpointDescriptor.GetDirectionIn() ? "IN" : "OUT")}   ");
+                        contentString.Append($"ScheduleOffset={usbDevice.ConnectionInfo.PipeList[i].ScheduleOffset}  ");
+                        contentString.Append($"Type={usbDevice.ConnectionInfo.PipeList[i].EndpointDescriptor.bDescriptorType}  ");
+                        contentString.Append($"wMaxPacketSize={WriteHex(usbDevice.ConnectionInfo.PipeList[i].EndpointDescriptor.wMaxPacketSize, 2)}    ");
+                        contentString.Append($"bInterval={usbDevice.ConnectionInfo.PipeList[i].EndpointDescriptor.bInterval}   -> ");
+                        contentString.Append($"270 Bits/ms = 33750 Bytes/s\n");
+                    }
+                }
+
+                contentString.Append(PROPERTY_HEX_DUMP);
+                contentString.Append(WriteHexDumpWithAscii(usbDevice.ConnectionInfo, Marshal.SizeOf(usbDevice.ConnectionInfo), PROPERTY_HEX_DUMP.Length));
+                contentString.Append("\n");
+                #endregion
+
 
                 PrintStringDescriptors(ref contentString, usbDevice.StringDescs, usbDevice.DeviceInfoNode?.LatestDevicePowerState);
             }

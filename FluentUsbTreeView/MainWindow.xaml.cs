@@ -24,6 +24,7 @@ using WpfTreeViewItem = System.Windows.Controls.TreeViewItem;
 using WpfMenuItem = System.Windows.Controls.MenuItem;
 using ContextMenu = System.Windows.Controls.ContextMenu;
 using System.Windows.Forms;
+using System.Windows.Interop;
 
 namespace FluentUsbTreeView {
     /// <summary>
@@ -68,6 +69,10 @@ namespace FluentUsbTreeView {
             // Register for update notifications
             DeviceManaged.OnDeviceAdded     += HandleUsbTreeDeviceUpdate;
             DeviceManaged.OnDeviceRemoved   += HandleUsbTreeDeviceUpdate;
+
+            // @TODO: Tabbed mica textbox handle
+            // HwndSource textboxHandle = (HwndSource)HwndSource.FromVisual(this.rawTextContent);
+            // textboxHandle.Handle
         }
 
         private void TrySetWindowPositionAndBounds() {
