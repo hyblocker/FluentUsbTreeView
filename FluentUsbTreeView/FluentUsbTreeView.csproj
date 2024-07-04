@@ -161,6 +161,7 @@
     <Compile Include="UsbTreeView\UsbStructs.cs" />
     <Compile Include="Util\CoreExtensions.cs" />
     <Compile Include="Util\Logger.cs" />
+    <Compile Include="Util\Updater.cs" />
     <Compile Include="Util\Util.cs" />
   </ItemGroup>
   <ItemGroup>
